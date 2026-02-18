@@ -1,0 +1,125 @@
+
+> Configure project :app
+WARNING: The option setting 'android.disallowKotlinSourceSets=false' is experimental.
+The current default is 'true'.
+w: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:46:20: 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+w: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:49:20: 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+
+> Task :app:objectboxPrepareBuild
+> Task :app:preBuild
+> Task :app:preDebugBuild
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :app:processDebugNavigationResources
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:javaPreCompileDebug
+> Task :app:parseDebugLocalResources
+> Task :app:mergeDebugAssets
+> Task :app:desugarDebugFileDependencies
+> Task :app:compressDebugAssets
+> Task :app:generateDebugRFile
+> Task :app:checkDebugAarMetadata
+> Task :app:compileDebugNavigationResources
+> Task :app:mapDebugSourceSetPaths
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug
+> Task :app:mergeDebugResources
+> Task :app:processDebugMainManifest
+> Task :app:processDebugManifest
+> Task :app:mergeDebugJniLibFolders
+> Task :app:checkDebugDuplicateClasses
+> Task :app:kspDebugKotlin
+> Task :app:processDebugManifestForPackage
+> Task :app:mergeDebugNativeLibs
+> Task :app:mergeExtDexDebug
+
+> Task :app:kspDebugKotlin
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/entity/live/LiveStreamEntity.kt:9: Entity class must be annotated with @Entity
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/entity/live/LiveStreamEntity.kt:9: An entity must have at least 1 property annotated with @PrimaryKey
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/entity/vod/VodStreamEntity.kt:9: Entity class must be annotated with @Entity
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/entity/vod/VodStreamEntity.kt:9: An entity must have at least 1 property annotated with @PrimaryKey
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/entity/series/SeriesStreamEntity.kt:9: Entity class must be annotated with @Entity
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/entity/series/SeriesStreamEntity.kt:9: An entity must have at least 1 property annotated with @PrimaryKey
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:21: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:21: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:24: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:24: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:27: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:27: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:40: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:40: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:58: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:58: Not sure how to convert the query result to this function's return type (kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:66: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:66: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:74: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:74: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:77: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:77: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:80: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:80: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.live.LiveStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:86: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: live_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/LiveTvDao.kt:18: Type of the parameter must be a class annotated with @Entity or a collection/array of it.
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:21: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:21: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:24: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:24: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:27: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:27: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:40: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:40: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:48: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:48: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:56: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:56: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:59: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:59: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:62: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:62: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:65: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:65: Not sure how to convert the query result to this function's return type (kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:68: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:68: Not sure how to convert the query result to this function's return type (kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.vod.VodStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:74: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: vod_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/VodDao.kt:18: Type of the parameter must be a class annotated with @Entity or a collection/array of it.
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:21: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:21: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:24: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:24: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:27: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:27: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:40: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:40: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:48: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:48: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:56: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:56: Not sure how to convert the query result to this function's return type (kotlinx.coroutines.flow.Flow<kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:59: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:59: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:62: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:62: Not sure how to convert the query result to this function's return type (androidx.paging.PagingSource<kotlin.Int, com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:65: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:65: Not sure how to convert the query result to this function's return type (kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:68: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:68: Not sure how to convert the query result to this function's return type (kotlin.collections.List<com.stream.iptvrevolut.`data`.local.entity.series.SeriesStreamEntity>).
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:74: There is a problem with the query: [SQLITE_ERROR] SQL error or missing database (no such table: series_streams)
+e: [ksp] /home/admin/AndroidStudioProjects/IPTVRevolut/app/src/main/java/com/stream/iptvrevolut/data/local/dao/SeriesDao.kt:18: Type of the parameter must be a class annotated with @Entity or a collection/array of it.
+
+> Task :app:kspDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kspDebugKotlin'.
+> A failure occurred while executing com.google.devtools.ksp.gradle.KspAAWorkerAction
+   > KSP failed with exit code: PROCESSING_ERROR
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3m 23s
+24 actionable tasks: 24 executed

@@ -1,0 +1,22 @@
+
+> Configure project :app
+w: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:11:1: 'fun Project.android(configure: Action<BaseAppModuleExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.ApplicationExtension.
+This class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.
+w: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:47:20: 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+w: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:50:20: 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file '/home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts' line: 124
+
+* What went wrong:
+Configuration with name 'kapt' not found.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 2s

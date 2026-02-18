@@ -1,0 +1,46 @@
+
+> Configure project :app
+WARNING: The option setting 'android.disallowKotlinSourceSets=false' is experimental.
+The current default is 'true'.
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+w: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:11:1: 'fun Project.android(configure: Action<BaseAppModuleExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.ApplicationExtension.
+This class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.
+w: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:47:20: 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+w: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:50:20: 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+e: file:///home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts:124:10: Argument type mismatch: actual type is 'Provider<MinimalExternalModuleDependency>', but 'Action<KaptExtension>' was expected.
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file '/home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts' line: 11
+
+* What went wrong:
+Script compilation errors:
+
+  Line 011: android {
+            ^ 'fun Project.android(configure: Action<BaseAppModuleExtension>): Unit' is deprecated. Replaced by com.android.build.api.dsl.ApplicationExtension.
+                This class is not used for the public extensions in AGP when android.newDsl=true, which is the default in AGP 9.0, and will be removed in AGP 10.0.
+
+  Line 047:             kotlin.srcDir("build/generated/ksp/main/kotlin")
+                               ^ 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+
+  Line 050:             kotlin.srcDir("build/generated/ksp/debug/kotlin")
+                               ^ 'fun srcDir(srcDir: Any): Any' is deprecated. Use `directories` mutable set instead.
+
+  Line 124:     kapt(libs.io.objectbox.processor)
+                     ^ Argument type mismatch: actual type is 'Provider<MinimalExternalModuleDependency>', but 'Action<KaptExtension>' was expected.
+
+4 errors
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 3s

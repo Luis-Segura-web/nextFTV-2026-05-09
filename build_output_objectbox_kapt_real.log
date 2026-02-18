@@ -1,0 +1,17 @@
+
+FAILURE: Build failed with an exception.
+
+* Where:
+Build file '/home/admin/AndroidStudioProjects/IPTVRevolut/app/build.gradle.kts' line: 1
+
+* What went wrong:
+Error resolving plugin [id: 'org.jetbrains.kotlin.kapt', version: '2.3.10']
+> The request for this plugin could not be satisfied because the plugin is already on the classpath with an unknown version, so compatibility cannot be checked.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to generate a Build Scan (Powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1s

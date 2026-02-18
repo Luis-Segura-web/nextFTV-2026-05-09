@@ -1,0 +1,142 @@
+<resources>
+    <string name="app_name">IPTV Revolut</string>
+    <string name="splash_app_title">IPTV REVOLUT</string>
+
+    <!-- Login Screen -->
+    <string name="login_header_title">Añadir Perfil</string>
+    <string name="login_header_subtitle">Configura tu cuenta de Xtream Codes</string>
+    <string name="login_label_profile_name">Nombre del Perfil</string>
+    <string name="login_placeholder_profile_name">Ej: Mi IPTV Casa</string>
+    <string name="login_label_server_url">URL del Servidor</string>
+    <string name="login_placeholder_server_url">http://ejemplo.com:8080</string>
+    <string name="login_label_username">Usuario</string>
+    <string name="login_placeholder_username">Tu usuario</string>
+    <string name="login_label_password">Contraseña</string>
+    <string name="login_placeholder_password">Tu contraseña</string>
+    <string name="login_button_connect">CONECTAR</string>
+    <string name="login_error_empty_fields">Todos los campos son obligatorios</string>
+    <string name="login_error_invalid_credentials">Usuario o contraseña incorrectos</string>
+    <string name="login_error_network">Error de conexión con el servidor</string>
+
+    <!-- Profile Selector Screen -->
+    <string name="profiles_title">Mis Perfiles</string>
+    <string name="profiles_empty">No hay perfiles configurados</string>
+    <string name="profiles_add_button">Añadir Servidor</string>
+    <string name="profiles_delete_confirm">¿Borrar este perfil?</string>
+
+    <!-- Home Screen -->
+    <string name="home_app_title">ALPHA26</string>
+    <string name="home_sync_all">Sincronizar Todo</string>
+    <string name="home_settings">Ajustes</string>
+    <string name="home_expiration_label">Expira: %1$s · Estado: ACTIVO</string>
+    
+    <!-- Modules -->
+    <string name="module_live_title">TV en Vivo</string>
+    <string name="module_live_subtitle">Canales y Guía de Programación</string>
+    <string name="module_movies_title">Películas</string>
+    <string name="module_movies_subtitle">Cine y VOD</string>
+    <string name="module_series_title">Series</string>
+    <string name="module_series_subtitle">Temporadas y Episodios</string>
+    <string name="module_downloads_title">Descargas</string>
+    <string name="module_downloads_subtitle">Contenido offline</string>
+    <string name="module_last_sync">Sinc: %1$s</string>
+    <string name="module_sync_never">Nunca</string>
+
+    <!-- Live TV Screen -->
+    <string name="live_title">TV en Vivo</string>
+    <string name="live_search_placeholder">Buscar canal...</string>
+    <string name="live_no_streams">No hay canales disponibles</string>
+    <string name="live_select_channel">Selecciona un canal para reproducir</string>
+    <string name="live_category_all">Todos</string>
+    <string name="live_category_favorites">Favoritos</string>
+    <string name="live_category_recents">Recientes</string>
+    <string name="live_epg_no_info">Sin información de programa (EPG)</string>
+
+    <!-- Movies Screen -->
+    <string name="movies_title">Películas</string>
+    <string name="movies_search_placeholder">Buscar película...</string>
+    <string name="movies_no_results">No hay películas disponibles</string>
+    <string name="movies_category_all">Todas</string>
+    <string name="movies_category_favorites">Favoritos</string>
+    <string name="movies_category_recents">Recientes</string>
+
+    <!-- Series Screen -->
+    <string name="series_title">Series</string>
+    <string name="series_search_placeholder">Buscar serie...</string>
+    <string name="series_no_results">No hay series disponibles</string>
+    <string name="series_category_all">Todas</string>
+    <string name="series_category_favorites">Favoritos</string>
+    <string name="series_category_recents">Recientes</string>
+
+    <!-- Details Common -->
+    <string name="details_loading">Cargando...</string>
+    <string name="details_synopsis">SINOPSIS</string>
+    <string name="details_cast">REPARTO</string>
+    <string name="details_no_description">Sin descripción disponible.</string>
+    <string name="details_favorite">Favorito</string>
+    <string name="details_download">Descargar</string>
+    <string name="details_home">Home</string>
+    <string name="details_runtime">%1$s min</string>
+    
+    <!-- Series Details -->
+    <string name="series_season_label">Temporada %1$d</string>
+    <string name="series_select_episode">Selecciona un episodio</string>
+    <string name="series_duration_placeholder">Duración: -- min</string>
+    <string name="series_playing_badge">Reproduciendo</string>
+
+    <!-- Downloads Screen -->
+    <string name="downloads_title">Mis Descargas</string>
+    <string name="downloads_empty">No tienes descargas todavía</string>
+    <string name="downloads_status_downloading">Descargando... (%1$s)</string>
+    <string name="downloads_status_paused">Pausado</string>
+    <string name="downloads_status_completed">Completado</string>
+    <string name="downloads_status_queued">En cola</string>
+    <string name="downloads_status_error">Error</string>
+    <string name="downloads_action_delete">Eliminar</string>
+    <string name="downloads_action_pause">Pausar</string>
+    <string name="downloads_action_resume">Reanudar</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_section_account">CUENTA</string>
+    <string name="settings_section_playback">REPRODUCCIÓN</string>
+    <string name="settings_section_general">GENERAL</string>
+    
+    <string name="settings_active_profile">Perfil Activo</string>
+    <string name="settings_server">Servidor</string>
+    <string name="settings_logout">Cerrar Sesión</string>
+    <string name="settings_logout_subtitle">Volver al selector de perfiles</string>
+    
+    <string name="settings_pip">Picture-in-Picture (PiP)</string>
+    <string name="settings_pip_subtitle">Reproducir en ventana flotante al salir</string>
+    <string name="settings_autoplay">Autoplay Siguiente Episodio</string>
+    <string name="settings_autoplay_subtitle">Reproducir automáticamente al terminar</string>
+    <string name="settings_external_player">Usar Reproductor Externo</string>
+    <string name="settings_external_player_subtitle">Abrir videos con VLC o MX Player</string>
+    
+    <string name="settings_parental">Control Parental</string>
+    <string name="settings_parental_subtitle">Bloquear contenido para adultos</string>
+    <string name="settings_app_info">Información de la App</string>
+    <string name="settings_app_version">Versión 1.0.0 (Alpha26)</string>
+    <string name="settings_unknown">Desconocido</string>
+    <string name="settings_sync_interval">Intervalo de Sincronización</string>
+    <string name="settings_sync_interval_subtitle">Vigencia del contenido: %1$d horas</string>
+    <string name="settings_hours_unit">%1$d horas</string>
+
+    <!-- Sorting -->
+    <string name="sort_title">Ordenar</string>
+    <string name="sort_default">Por Defecto</string>
+    <string name="sort_az">A - Z</string>
+    <string name="sort_za">Z - A</string>
+    <string name="search_no_results">No se encontraron resultados</string>
+
+    <!-- Player Controls -->
+    <string name="player_play">Reproducir</string>
+    <string name="player_pause">Pausar</string>
+    <string name="player_forward">Adelantar 10 segundos</string>
+    <string name="player_rewind">Retroceder 10 segundos</string>
+    <string name="player_fullscreen">Pantalla Completa</string>
+    <string name="player_exit_fullscreen">Salir de Pantalla Completa</string>
+    <string name="player_next_channel">Siguiente Canal</string>
+    <string name="player_prev_channel">Canal Anterior</string>
+</resources>
