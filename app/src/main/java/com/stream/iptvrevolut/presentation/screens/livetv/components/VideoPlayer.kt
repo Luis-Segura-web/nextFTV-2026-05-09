@@ -13,6 +13,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.view.View
+import android.util.TypedValue
+import android.widget.TextView
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
@@ -227,6 +229,7 @@ fun VideoPlayer(
                                 if (isPipEnabled) View.VISIBLE else View.GONE
                             findViewById<View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.visibility =
                                 if (isPipEnabled) View.VISIBLE else View.GONE
+                            syncTopTitleVisibility(this, visibility)
                             applyInlineProgressLayout(this, isInline = !isFullScreen)
                         }
                     )
@@ -278,6 +281,17 @@ fun VideoPlayer(
                 it.findViewById<View>(Media3UiR.id.exo_overflow_show)?.visibility = View.GONE
                 it.findViewById<View>(Media3UiR.id.exo_overflow_hide)?.visibility = View.GONE
                 it.findViewById<View>(Media3UiR.id.exo_fullscreen)?.visibility = View.VISIBLE
+                configureTopTitleContent(
+                    playerView = it,
+                    sourceTitle = title,
+                    isLive = isLive,
+                    isFullScreen = isFullScreen
+                )
+                syncTopTitleVisibility(
+                    playerView = it,
+                    controllerVisibility = it.findViewById<View>(com.stream.iptvrevolut.R.id.exo_top_controls)?.visibility
+                        ?: View.GONE
+                )
                 applyInlineProgressLayout(it, isInline = !isFullScreen)
                 configureTimeBar(
                     playerView = it,
@@ -481,4 +495,58 @@ private fun configureCustomPrevNextButtons(
         next.alpha = if (onNext != null) 1f else 0.4f
         next.setOnClickListener { onNext?.invoke() }
     }
+}
+
+private fun configureTopTitleContent(
+    playerView: PlayerView,
+    sourceTitle: String,
+    isLive: Boolean,
+    isFullScreen: Boolean
+) {
+    val container = playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_top_title_container) ?: return
+    val primary = playerView.findViewById<TextView>(com.stream.iptvrevolut.R.id.exo_top_title_primary) ?: return
+    val secondary = playerView.findViewById<TextView>(com.stream.iptvrevolut.R.id.exo_top_title_secondary) ?: return
+
+    val seriesCodeRegex = Regex("\\bS\\d{2}E\\d{2}\\b")
+    val seriesCode = seriesCodeRegex.find(sourceTitle)?.value
+    val isSeries = seriesCode != null
+
+    val primaryText: String
+    val secondaryText: String?
+    val shouldShow = when {
+        isLive -> {
+            primaryText = sourceTitle
+            secondaryText = null
+            true
+        }
+        isSeries -> {
+            val parts = sourceTitle.split(" - ")
+            val episodeTitle = parts.lastOrNull().orEmpty().ifBlank { sourceTitle }
+            primaryText = episodeTitle
+            secondaryText = seriesCode
+            true
+        }
+        else -> {
+            primaryText = sourceTitle
+            secondaryText = null
+            isFullScreen
+        }
+    }
+
+    primary.text = primaryText
+    secondary.text = secondaryText.orEmpty()
+    secondary.visibility = if (secondaryText.isNullOrBlank()) View.GONE else View.VISIBLE
+
+    val primarySp = if (isFullScreen) 20f else 14f
+    val secondarySp = if (isFullScreen) 15f else 11f
+    primary.setTextSize(TypedValue.COMPLEX_UNIT_SP, primarySp)
+    secondary.setTextSize(TypedValue.COMPLEX_UNIT_SP, secondarySp)
+
+    container.setTag(com.stream.iptvrevolut.R.id.exo_top_title_container, shouldShow)
+}
+
+private fun syncTopTitleVisibility(playerView: PlayerView, controllerVisibility: Int) {
+    val container = playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_top_title_container) ?: return
+    val shouldShow = container.getTag(com.stream.iptvrevolut.R.id.exo_top_title_container) as? Boolean ?: false
+    container.visibility = if (shouldShow && controllerVisibility == View.VISIBLE) View.VISIBLE else View.GONE
 }
