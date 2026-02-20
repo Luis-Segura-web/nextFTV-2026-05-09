@@ -11,31 +11,99 @@ interface SeriesDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategories(categories: List<SeriesCategoryEntity>)
 
-    @Query("SELECT * FROM series_categories WHERE profileId = :profileId ORDER BY orderIndex ASC")
+    @Query(
+        """
+        SELECT *
+        FROM series_categories c
+        WHERE c.profileId = :profileId
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = c.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = c.categoryId
+        )
+        ORDER BY orderIndex ASC
+        """
+    )
     fun getCategories(profileId: Int): Flow<List<SeriesCategoryEntity>>
+
+    @Query("SELECT * FROM series_categories WHERE profileId = :profileId ORDER BY orderIndex ASC")
+    fun getAllCategoriesRaw(profileId: Int): Flow<List<SeriesCategoryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStreams(streams: List<SeriesStreamEntity>)
 
-    @Query("SELECT * FROM series_streams WHERE profileId = :profileId AND categoryId = :categoryId ORDER BY num ASC")
+    @Query(
+        """
+        SELECT *
+        FROM series_streams s
+        WHERE s.profileId = :profileId
+        AND s.categoryId = :categoryId
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = s.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = s.categoryId
+        )
+        ORDER BY s.num ASC
+        """
+    )
     fun getStreamsByCategory(profileId: Int, categoryId: String): Flow<List<SeriesStreamEntity>>
 
-    @Query("SELECT * FROM series_streams WHERE profileId = :profileId GROUP BY seriesId ORDER BY num ASC")
+    @Query(
+        """
+        SELECT *
+        FROM series_streams s
+        WHERE s.profileId = :profileId
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = s.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = s.categoryId
+        )
+        GROUP BY s.seriesId
+        ORDER BY s.num ASC
+        """
+    )
     fun getAllStreams(profileId: Int): Flow<List<SeriesStreamEntity>>
 
-    @Query("SELECT * FROM series_streams WHERE profileId = :profileId AND normalizedName LIKE '%' || :query || '%'")
+    @Query(
+        """
+        SELECT *
+        FROM series_streams s
+        WHERE s.profileId = :profileId
+        AND s.normalizedName LIKE '%' || :query || '%'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = s.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = s.categoryId
+        )
+        """
+    )
     fun searchStreams(profileId: Int, query: String): Flow<List<SeriesStreamEntity>>
 
     @Query("""
-        SELECT * FROM series_streams 
-        WHERE profileId = :profileId 
-        AND (:categoryId IS NULL OR :categoryId = 'all' OR categoryId = :categoryId)
-        AND (:query = '' OR normalizedName LIKE '%' || :query || '%')
-        GROUP BY seriesId 
+        SELECT * FROM series_streams s
+        WHERE s.profileId = :profileId
+        AND (:categoryId IS NULL OR :categoryId = 'all' OR s.categoryId = :categoryId)
+        AND (:query = '' OR s.normalizedName LIKE '%' || :query || '%')
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = s.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = s.categoryId
+        )
+        GROUP BY s.seriesId
         ORDER BY 
-            CASE WHEN :sortOrder = 'A_Z' THEN naturalSortName END ASC,
-            CASE WHEN :sortOrder = 'Z_A' THEN naturalSortName END DESC,
-            num ASC
+            CASE WHEN :sortOrder = 'A_Z' THEN s.naturalSortName END ASC,
+            CASE WHEN :sortOrder = 'Z_A' THEN s.naturalSortName END DESC,
+            s.num ASC
     """)
     fun getStreamsPaged(
         profileId: Int, 
@@ -44,21 +112,80 @@ interface SeriesDao {
         sortOrder: String = "DEFAULT"
     ): PagingSource<Int, SeriesStreamEntity>
 
-    @Query("SELECT s.* FROM series_streams s INNER JOIN recents r ON s.seriesId = r.streamId AND s.profileId = r.profileId WHERE s.profileId = :profileId AND r.contentType = 'series' GROUP BY s.seriesId ORDER BY r.timestamp DESC LIMIT 15")
+    @Query(
+        """
+        SELECT s.*
+        FROM series_streams s
+        INNER JOIN recents r ON s.seriesId = r.streamId AND s.profileId = r.profileId
+        WHERE s.profileId = :profileId
+        AND r.contentType = 'series'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = s.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = s.categoryId
+        )
+        GROUP BY s.seriesId
+        ORDER BY r.timestamp DESC
+        LIMIT 15
+        """
+    )
     fun getRecentStreams(profileId: Int): Flow<List<SeriesStreamEntity>>
 
     @Query("""
         SELECT s.* FROM series_streams s 
-        WHERE s.profileId = :profileId 
+        WHERE s.profileId = :profileId
         AND s.seriesId IN (SELECT f.streamId FROM favorites f WHERE f.profileId = :profileId AND f.contentType = 'series')
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = s.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = s.categoryId
+        )
         GROUP BY s.seriesId
     """)
     fun getFavoriteStreams(profileId: Int): Flow<List<SeriesStreamEntity>>
 
-    @Query("SELECT s.* FROM series_streams s INNER JOIN favorites f ON s.seriesId = f.streamId AND s.profileId = f.profileId WHERE s.profileId = :profileId AND f.contentType = 'series' GROUP BY s.seriesId ORDER BY f.timestamp DESC")
+    @Query(
+        """
+        SELECT s.*
+        FROM series_streams s
+        INNER JOIN favorites f ON s.seriesId = f.streamId AND s.profileId = f.profileId
+        WHERE s.profileId = :profileId
+        AND f.contentType = 'series'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = s.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = s.categoryId
+        )
+        GROUP BY s.seriesId
+        ORDER BY f.timestamp DESC
+        """
+    )
     fun getFavoriteStreamsPaged(profileId: Int): PagingSource<Int, SeriesStreamEntity>
 
-    @Query("SELECT s.* FROM series_streams s INNER JOIN recents r ON s.seriesId = r.streamId AND s.profileId = r.profileId WHERE s.profileId = :profileId AND r.contentType = 'series' GROUP BY s.seriesId ORDER BY r.timestamp DESC")
+    @Query(
+        """
+        SELECT s.*
+        FROM series_streams s
+        INNER JOIN recents r ON s.seriesId = r.streamId AND s.profileId = r.profileId
+        WHERE s.profileId = :profileId
+        AND r.contentType = 'series'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM parental_hidden_categories h
+            WHERE h.profileId = s.profileId
+            AND h.contentType = 'series'
+            AND h.categoryId = s.categoryId
+        )
+        GROUP BY s.seriesId
+        ORDER BY r.timestamp DESC
+        """
+    )
     fun getRecentStreamsPaged(profileId: Int): PagingSource<Int, SeriesStreamEntity>
 
     @Query("SELECT s.* FROM series_streams s WHERE s.profileId = :profileId AND s.tmdbId = :tmdbId")

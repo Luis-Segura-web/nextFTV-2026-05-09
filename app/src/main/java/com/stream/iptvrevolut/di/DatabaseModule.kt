@@ -83,4 +83,10 @@ object DatabaseModule {
     fun provideSyncStatusDao(db: IPTVDatabase): SyncStatusDao {
         return db.syncStatusDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideParentalControlDao(db: IPTVDatabase): ParentalControlDao {
+        return db.parentalControlDao()
+    }
 }

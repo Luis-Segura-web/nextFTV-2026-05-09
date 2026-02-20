@@ -4,6 +4,9 @@ import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import android.view.View
 import android.util.TypedValue
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -38,6 +42,7 @@ import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.player.PipPreferences
 import com.stream.iptvrevolut.utils.findActivity
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -50,6 +55,7 @@ fun VideoPlayer(
     modifier: Modifier = Modifier,
     useOriginalMedia3Controller: Boolean = false,
     isFullScreen: Boolean = false,
+    resumePositionMs: Long = 0L,
     onLoading: (Boolean) -> Unit = {},
     onError: (String) -> Unit = {},
     onFullScreenClick: () -> Unit = {},
@@ -57,6 +63,7 @@ fun VideoPlayer(
     onPrevious: (() -> Unit)? = null,
     onClose: () -> Unit = {},
     onPipRequested: (() -> Unit)? = null,
+    onProgress: (Long) -> Unit = {},
     isLive: Boolean = false,
     isSmall: Boolean = false
 ) {
@@ -74,6 +81,10 @@ fun VideoPlayer(
     var isAnyMenuOpen by remember { mutableStateOf(false) }
     var isDraggingSeek by remember { mutableStateOf(false) }
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
+    var showUnlockOverlay by remember { mutableStateOf(false) }
+    var isUnlockPressing by remember { mutableStateOf(false) }
+    var unlockHoldProgress by remember { mutableFloatStateOf(0f) }
+    var unlockOverlayJob by remember { mutableStateOf<Job?>(null) }
     
     var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
     var position by remember { mutableLongStateOf(0L) }
@@ -81,11 +92,64 @@ fun VideoPlayer(
     var bufferedPosition by remember { mutableLongStateOf(0L) }
     var availableTracks by remember { mutableStateOf(Tracks.EMPTY) }
     var currentSpeed by remember { mutableFloatStateOf(1.0f) }
+    var pendingSeekMs by remember(url) {
+        mutableLongStateOf(resumePositionMs.coerceAtLeast(0L))
+    }
+    var initialSeekConsumed by remember(url) { mutableStateOf(false) }
 
     val exoPlayer = remember { GlobalPlaybackManager.getPlayer(context) }
 
+    LaunchedEffect(url, resumePositionMs) {
+        // Never replace a pending resume with a lower value (e.g. transient 0 while loading).
+        if (!initialSeekConsumed && resumePositionMs > pendingSeekMs) {
+            pendingSeekMs = resumePositionMs.coerceAtLeast(0L)
+        }
+    }
+
     var timerJob by remember { mutableStateOf<Job?>(null) }
+    fun showUnlockOverlayTemporarily() {
+        if (!isLocked) return
+        unlockOverlayJob?.cancel()
+        showUnlockOverlay = true
+        if (!isUnlockPressing) {
+            unlockOverlayJob = scope.launch {
+                delay(5000)
+                if (!isUnlockPressing) {
+                    showUnlockOverlay = false
+                }
+            }
+        }
+    }
+
+    fun onPlayerLocked() {
+        timerJob?.cancel()
+        isControlsVisible = false
+        isUnlockPressing = false
+        unlockHoldProgress = 0f
+        showUnlockOverlayTemporarily()
+    }
+
+    fun onPlayerUnlocked() {
+        unlockOverlayJob?.cancel()
+        showUnlockOverlay = false
+        isUnlockPressing = false
+        unlockHoldProgress = 0f
+        timerJob?.cancel()
+        isControlsVisible = true
+        if (!isAnyMenuOpen && isPlaying && !isDraggingSeek) {
+            timerJob = scope.launch {
+                delay(5000)
+                isControlsVisible = false
+            }
+        }
+    }
+
     fun resetControlsTimer(forceShow: Boolean = true) {
+        if (isLocked) {
+            timerJob?.cancel()
+            isControlsVisible = false
+            return
+        }
         timerJob?.cancel()
         if (forceShow) isControlsVisible = true
         
@@ -98,7 +162,12 @@ fun VideoPlayer(
         }
     }
 
-    LaunchedEffect(isPlaying, isLocked, isAnyMenuOpen, isDraggingSeek) { 
+    LaunchedEffect(isPlaying, isLocked, isAnyMenuOpen, isDraggingSeek) {
+        if (isLocked) {
+            timerJob?.cancel()
+            isControlsVisible = false
+            return@LaunchedEffect
+        }
         // Si se está arrastrando, cancelar cualquier timer de ocultación
         if (isDraggingSeek) {
             timerJob?.cancel()
@@ -142,6 +211,9 @@ fun VideoPlayer(
     LaunchedEffect(exoPlayer) {
         while (isActive) {
             position = exoPlayer.currentPosition
+            if (exoPlayer.playbackState == Player.STATE_READY) {
+                onProgress(position.coerceAtLeast(0L))
+            }
             duration = exoPlayer.duration.coerceAtLeast(0L)
             bufferedPosition = exoPlayer.bufferedPosition
             delay(1000)
@@ -149,15 +221,26 @@ fun VideoPlayer(
     }
 
     DisposableEffect(Unit) {
+        fun consumeInitialSeekIfReady() {
+            if (initialSeekConsumed || exoPlayer.playbackState != Player.STATE_READY) return
+            if (pendingSeekMs > 0L) {
+                exoPlayer.seekTo(pendingSeekMs)
+            }
+            pendingSeekMs = 0L
+            initialSeekConsumed = true
+        }
+
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) { 
                 isBuffering = state == Player.STATE_BUFFERING
+                if (state == Player.STATE_READY) consumeInitialSeekIfReady()
                 onLoading(isBuffering) 
             }
             override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
             override fun onTracksChanged(tracks: Tracks) { availableTracks = tracks }
         }
         exoPlayer.addListener(listener)
+        consumeInitialSeekIfReady()
         onDispose { 
             exoPlayer.removeListener(listener)
         }
@@ -181,9 +264,7 @@ fun VideoPlayer(
             .pointerInput(isLocked) {
                 detectTapGestures(onTap = {
                     if (isLocked) {
-                        timerJob?.cancel()
-                        isControlsVisible = true
-                        timerJob = scope.launch { delay(5000); isControlsVisible = false }
+                        showUnlockOverlayTemporarily()
                     } else {
                         if (isControlsVisible && !isAnyMenuOpen) isControlsVisible = false
                         else {
@@ -231,79 +312,96 @@ fun VideoPlayer(
                                 if (isPipEnabled) View.VISIBLE else View.GONE
                             syncTopTitleVisibility(this, visibility)
                             applyInlineProgressLayout(this, isInline = !isFullScreen)
+                            applyLockStateToOriginalController(this, isLocked, visibility)
                         }
                     )
                 }
             },
             modifier = Modifier.fillMaxSize(),
-            update = { 
-                playerViewRef = it
-                it.useController = useOriginalMedia3Controller && !isInSystemPipMode
-                it.setShowNextButton(onNext != null)
-                it.setShowPreviousButton(onPrevious != null)
-                it.setShowFastForwardButton(!isLive)
-                it.setShowRewindButton(!isLive)
-                it.findViewById<android.view.View>(Media3UiR.id.exo_fullscreen)?.setOnClickListener {
+            update = { playerView ->
+                playerViewRef = playerView
+                playerView.useController = useOriginalMedia3Controller && !isInSystemPipMode
+                playerView.setShowNextButton(onNext != null)
+                playerView.setShowPreviousButton(onPrevious != null)
+                playerView.setShowFastForwardButton(!isLive)
+                playerView.setShowRewindButton(!isLive)
+                playerView.findViewById<android.view.View>(Media3UiR.id.exo_fullscreen)?.setOnClickListener {
                     onFullScreenClick()
                 }
-                it.findViewById<android.view.View>(Media3UiR.id.exo_minimal_fullscreen)?.setOnClickListener {
+                playerView.findViewById<android.view.View>(Media3UiR.id.exo_minimal_fullscreen)?.setOnClickListener {
                     onFullScreenClick()
                 }
                 configureCustomPrevNextButtons(
-                    playerView = it,
+                    playerView = playerView,
                     onNext = onNext,
                     onPrevious = onPrevious
                 )
-                it.findViewById<View>(com.stream.iptvrevolut.R.id.exo_pip)?.visibility =
+                playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_pip)?.visibility =
                     if (isPipEnabled) View.VISIBLE else View.GONE
-                it.findViewById<View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.visibility =
+                playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.visibility =
                     if (isPipEnabled) View.VISIBLE else View.GONE
-                it.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_pip)?.setOnClickListener {
+                playerView.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_pip)?.setOnClickListener {
                     if (isPipEnabled) {
                         playerViewRef?.hideController()
                         (onPipRequested ?: { activity?.enterPipMode() }).invoke()
                     }
                 }
-                it.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.setOnClickListener {
+                playerView.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.setOnClickListener {
                     if (isPipEnabled) {
                         playerViewRef?.hideController()
                         (onPipRequested ?: { activity?.enterPipMode() }).invoke()
                     }
                 }
-                it.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_close)?.setOnClickListener {
+                playerView.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_close)?.setOnClickListener {
                     GlobalPlaybackManager.stopAndClear()
                     onClose()
                 }
+                playerView.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_lock)?.setOnClickListener {
+                    isLocked = !isLocked
+                    if (isLocked) onPlayerLocked() else onPlayerUnlocked()
+                    applyLockStateToOriginalController(
+                        playerView = playerView,
+                        isLocked = isLocked,
+                        controllerVisibility = View.VISIBLE
+                    )
+                    playerView.showController()
+                }
                 // Keep fullscreen always visible in inline by reducing optional controls.
-                it.findViewById<View>(Media3UiR.id.exo_vr)?.visibility = View.GONE
-                it.findViewById<View>(Media3UiR.id.exo_shuffle)?.visibility = View.GONE
-                it.findViewById<View>(Media3UiR.id.exo_repeat_toggle)?.visibility = View.GONE
-                it.findViewById<View>(Media3UiR.id.exo_overflow_show)?.visibility = View.GONE
-                it.findViewById<View>(Media3UiR.id.exo_overflow_hide)?.visibility = View.GONE
-                it.findViewById<View>(Media3UiR.id.exo_fullscreen)?.visibility = View.VISIBLE
+                playerView.findViewById<View>(Media3UiR.id.exo_vr)?.visibility = View.GONE
+                playerView.findViewById<View>(Media3UiR.id.exo_shuffle)?.visibility = View.GONE
+                playerView.findViewById<View>(Media3UiR.id.exo_repeat_toggle)?.visibility = View.GONE
+                playerView.findViewById<View>(Media3UiR.id.exo_overflow_show)?.visibility = View.GONE
+                playerView.findViewById<View>(Media3UiR.id.exo_overflow_hide)?.visibility = View.GONE
+                playerView.findViewById<View>(Media3UiR.id.exo_fullscreen)?.visibility = View.VISIBLE
                 configureTopTitleContent(
-                    playerView = it,
+                    playerView = playerView,
                     sourceTitle = title,
                     isLive = isLive,
                     isFullScreen = isFullScreen
                 )
                 syncTopTitleVisibility(
-                    playerView = it,
-                    controllerVisibility = it.findViewById<View>(com.stream.iptvrevolut.R.id.exo_top_controls)?.visibility
+                    playerView = playerView,
+                    controllerVisibility = playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_top_controls)?.visibility
                         ?: View.GONE
                 )
-                applyInlineProgressLayout(it, isInline = !isFullScreen)
+                applyInlineProgressLayout(playerView, isInline = !isFullScreen)
                 configureTimeBar(
-                    playerView = it,
+                    playerView = playerView,
                     duration = exoPlayer.duration,
                     position = exoPlayer.currentPosition,
                     bufferedPosition = exoPlayer.bufferedPosition
                 )
-                it.resizeMode = resizeMode 
+                applyLockStateToOriginalController(
+                    playerView = playerView,
+                    isLocked = isLocked,
+                    controllerVisibility = playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_top_controls)?.visibility
+                        ?: View.GONE
+                )
+                playerView.resizeMode = resizeMode 
                 if (isFullScreen) {
-                    it.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    playerView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_FULLSCREEN or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 } else {
-                    it.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
+                    playerView.systemUiVisibility = android.view.View.SYSTEM_UI_FLAG_VISIBLE
                 }
             }
         )
@@ -346,7 +444,10 @@ fun VideoPlayer(
                     exoPlayer.prepare()
                     exoPlayer.play()
                 },
-                onLock = { isLocked = !isLocked; resetControlsTimer() },
+                onLock = {
+                    isLocked = !isLocked
+                    if (isLocked) onPlayerLocked() else onPlayerUnlocked()
+                },
                 onAspect = {
                     resetControlsTimer()
                     resizeMode = when (resizeMode) {
@@ -393,7 +494,121 @@ fun VideoPlayer(
                 )
             }
         }
+
+        if (isLocked && !isInSystemPipMode) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(isLocked) {
+                        detectTapGestures(
+                            onTap = { showUnlockOverlayTemporarily() },
+                            onPress = {
+                                if (!isLocked) return@detectTapGestures
+                                unlockOverlayJob?.cancel()
+                                isUnlockPressing = true
+                                showUnlockOverlay = true
+                                unlockHoldProgress = 0f
+                                var unlocked = false
+
+                                coroutineScope {
+                                    val holdJob = launch {
+                                        val requiredMs = 3000L
+                                        val start = System.currentTimeMillis()
+                                        while (isActive) {
+                                            val elapsed = (System.currentTimeMillis() - start).coerceAtLeast(0L)
+                                            unlockHoldProgress = (elapsed.toFloat() / requiredMs.toFloat()).coerceIn(0f, 1f)
+                                            if (elapsed >= requiredMs) {
+                                                unlocked = true
+                                                isLocked = false
+                                                onPlayerUnlocked()
+                                                playerViewRef?.let { pv ->
+                                                    applyLockStateToOriginalController(
+                                                        playerView = pv,
+                                                        isLocked = false,
+                                                        controllerVisibility = View.VISIBLE
+                                                    )
+                                                    pv.showController()
+                                                }
+                                                break
+                                            }
+                                            delay(16)
+                                        }
+                                    }
+
+                                    val released = tryAwaitRelease()
+                                    if (!unlocked || !released) {
+                                        holdJob.cancel()
+                                        isUnlockPressing = false
+                                        unlockHoldProgress = 0f
+                                        showUnlockOverlayTemporarily()
+                                    }
+                                }
+                            }
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (showUnlockOverlay) {
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.45f),
+                        shape = CircleShape
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(
+                                    progress = { unlockHoldProgress },
+                                    modifier = Modifier.size(52.dp),
+                                    color = Color.White,
+                                    trackColor = Color.White.copy(alpha = 0.25f),
+                                    strokeWidth = 3.dp
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.LockOpen,
+                                    contentDescription = null,
+                                    tint = Color.White
+                                )
+                            }
+                            Text(
+                                text = "Mantén presionado 3s para desbloquear",
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
+}
+
+private fun applyLockStateToOriginalController(
+    playerView: PlayerView,
+    isLocked: Boolean,
+    controllerVisibility: Int
+) {
+    val lockButton = playerView.findViewById<ImageButton>(com.stream.iptvrevolut.R.id.exo_lock)
+    lockButton?.setImageResource(
+        if (isLocked) com.stream.iptvrevolut.R.drawable.ic_player_unlock
+        else com.stream.iptvrevolut.R.drawable.ic_player_lock
+    )
+
+    val controlsVisibility = if (isLocked) View.GONE else controllerVisibility
+    playerView.findViewById<View>(Media3UiR.id.exo_center_controls)?.visibility = controlsVisibility
+    playerView.findViewById<View>(Media3UiR.id.exo_bottom_bar)?.visibility = controlsVisibility
+    playerView.findViewById<View>(Media3UiR.id.exo_progress)?.visibility = controlsVisibility
+    playerView.findViewById<View>(Media3UiR.id.exo_progress_placeholder)?.visibility = controlsVisibility
+    playerView.findViewById<View>(Media3UiR.id.exo_minimal_controls)?.visibility = controlsVisibility
+    playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_top_title_container)?.visibility = controlsVisibility
+
+    playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_top_controls)?.visibility =
+        if (isLocked) View.GONE else controllerVisibility
+
+    playerView.controllerShowTimeoutMs = if (isLocked) 0 else 5000
+    playerView.controllerHideOnTouch = !isLocked
 }
 
 private fun applyInlineProgressLayout(playerView: PlayerView, isInline: Boolean) {

@@ -58,6 +58,26 @@ class ProfileRepositoryImpl @Inject constructor(
         prefs.edit().putBoolean("background_playback_enabled", enabled).apply()
     }
 
+    override suspend fun getParentalPin(): String? {
+        return prefs.getString("parental_pin", null)
+    }
+
+    override suspend fun setParentalPin(pin: String) {
+        prefs.edit().putString("parental_pin", pin).apply()
+    }
+
+    override suspend fun clearParentalPin() {
+        prefs.edit().remove("parental_pin").apply()
+    }
+
+    override suspend fun hasParentalPin(): Boolean {
+        return !prefs.getString("parental_pin", null).isNullOrBlank()
+    }
+
+    override suspend fun verifyParentalPin(pin: String): Boolean {
+        return prefs.getString("parental_pin", null) == pin
+    }
+
     override suspend fun clearRecents(profileId: Int) {
         recentDao.clearRecents(profileId)
     }

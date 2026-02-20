@@ -1,5 +1,6 @@
 package com.stream.iptvrevolut.presentation.screens.moviedetail
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -16,6 +17,7 @@ import com.stream.iptvrevolut.domain.model.ServerProfile
 import com.stream.iptvrevolut.domain.repository.ProfileRepository
 import com.stream.iptvrevolut.domain.repository.VodRepository
 import com.stream.iptvrevolut.domain.repository.DownloadRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -25,10 +27,12 @@ import javax.inject.Inject
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MovieDetailViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val profileRepository: ProfileRepository,
     private val vodRepository: VodRepository,
     private val downloadRepository: DownloadRepository
 ) : ViewModel() {
+    private val prefs by lazy { context.getSharedPreferences("playback_resume_prefs", Context.MODE_PRIVATE) }
 
     var movieDetails by mutableStateOf<TmdbMovieDetailsDto?>(null)
     var movieCollection by mutableStateOf<TmdbCollectionDto?>(null)
@@ -55,6 +59,7 @@ class MovieDetailViewModel @Inject constructor(
     var isPlayerActive by mutableStateOf(false)
     var isLoading by mutableStateOf(true)
     var localFilePath by mutableStateOf<String?>(null)
+    var lastMoviePositionMs by mutableStateOf(0L)
 
     //snapshotFlow asegura que cuando vodStream cambie, se vuelva a calcular el flujo de descarga
     val downloadState: Flow<DownloadEntity?> = combine(
@@ -85,6 +90,7 @@ class MovieDetailViewModel @Inject constructor(
                 val streams = vodRepository.getStreams(profile.id, null).first()
                 val stream = streams.find { it.streamId == streamId } ?: throw Exception("Película no encontrada")
                 vodStream = stream
+                lastMoviePositionMs = readMovieProgress(stream.streamId, profile.id)
                 
                 val downloads = downloadRepository.getDownloads(profile.id).first()
                 val download = downloads.find { it.streamId == streamId && it.type == "movie" && it.status == "completed" }
@@ -200,6 +206,21 @@ class MovieDetailViewModel @Inject constructor(
                 vodRepository.addToRecents(profile.id, streamId, "vod")
             }
         }
+    }
+
+    fun updateMovieProgress(streamId: Int, positionMs: Long) {
+        val profileId = activeProfile?.id ?: return
+        if (positionMs < 0L) return
+        lastMoviePositionMs = positionMs
+        prefs.edit().putLong(movieProgressKey(profileId, streamId), positionMs).apply()
+    }
+
+    private fun movieProgressKey(profileId: Int, streamId: Int): String {
+        return "movie_progress_${profileId}_$streamId"
+    }
+
+    private fun readMovieProgress(streamId: Int, profileId: Int): Long {
+        return prefs.getLong(movieProgressKey(profileId, streamId), 0L)
     }
 
     fun toggleFavorite() {

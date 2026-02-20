@@ -134,7 +134,7 @@ fun SeriesDetailScreen(
                             text = series?.name ?: "",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1,
+                            maxLines = 3,
                             overflow = TextOverflow.Ellipsis
                         )
                     },
@@ -183,17 +183,24 @@ fun SeriesDetailScreen(
                 Box(modifier = playerModifier.background(Color.Black)) {
                     if (viewModel.isPlayerActive && currentEpisode != null && profile != null) {
                         val streamUrl = viewModel.localEpisodePaths[currentEpisode.id] ?: "${profile.url}series/${profile.username}/${profile.password}/${currentEpisode.id}.${currentEpisode.containerExtension ?: "mp4"}"
+                        val resumeMs = viewModel.episodeProgressById[currentEpisode.id] ?: 0L
                         key(streamUrl) {
                             VideoPlayer(
                                 url = streamUrl,
                                 title = "${series.name} - S${currentEpisode.season?.toString()?.padStart(2, '0')}E${currentEpisode.episodeNum?.toString()?.padStart(2, '0')} - ${currentEpisode.title}",
                                 useOriginalMedia3Controller = true,
                                 isFullScreen = isFullScreen,
+                                resumePositionMs = resumeMs,
                                 onLoading = { loading ->
                                     viewModel.isPlayerLoading = loading
                                     if (!loading && lastRecentRegisteredUrl != streamUrl) {
                                         viewModel.onPlaybackStarted(series.seriesId)
                                         lastRecentRegisteredUrl = streamUrl
+                                    }
+                                },
+                                onProgress = { pos ->
+                                    currentEpisode?.let { ep ->
+                                        viewModel.updateSeriesProgress(ep, pos)
                                     }
                                 },
                                 onFullScreenClick = { isFullScreen = !isFullScreen },
@@ -298,11 +305,8 @@ fun SeriesDetailScreen(
                                     ) {
                                         Button(
                                             onClick = { 
-                                                if (currentEpisode == null && episodes != null) {
-                                                    episodes[selectedSeason.toString()]?.firstOrNull()?.let {
-                                                        viewModel.onEpisodeClick(it)
-                                                    }
-                                                }
+                                                selectedDetailTab = 1
+                                                viewModel.playLastSeenEpisodeOrFallback()
                                                 viewModel.isPlayerActive = true 
                                             },
                                             modifier = Modifier.weight(1f).height(54.dp),
@@ -311,7 +315,23 @@ fun SeriesDetailScreen(
                                         ) {
                                             Icon(Icons.Default.PlayArrow, contentDescription = null)
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Text("REPRODUCIR", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+                                            Column {
+                                                val hasProgress = viewModel.lastEpisodeId != null && viewModel.lastEpisodePositionMs > 0L
+                                                Text(
+                                                    text = if (hasProgress) "CONTINUAR" else "REPRODUCIR",
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    letterSpacing = 1.sp
+                                                )
+                                                if (hasProgress) {
+                                                    val season = viewModel.lastEpisodeSeason ?: 0
+                                                    val episode = viewModel.lastEpisodeNumber ?: 0
+                                                    Text(
+                                                        text = "S${season}E${episode} - ${formatElapsed(viewModel.lastEpisodePositionMs)}",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = Color.White.copy(alpha = 0.9f)
+                                                    )
+                                                }
+                                            }
                                         }
 
                                         Surface(
@@ -436,6 +456,7 @@ fun SeriesDetailScreen(
                                     EpisodeItem(
                                         episode = episode,
                                         isPlaying = currentEpisode?.id == episode.id,
+                                        progressMs = viewModel.episodeProgressById[episode.id] ?: 0L,
                                         download = episodeDownloads[episode.id],
                                         fallbackUrl = seriesBackdropUrl,
                                         onClick = { viewModel.onEpisodeClick(episode) },
@@ -455,6 +476,7 @@ fun SeriesDetailScreen(
 fun EpisodeItem(
     episode: SeriesEpisodeDto,
     isPlaying: Boolean,
+    progressMs: Long = 0L,
     download: com.stream.iptvrevolut.data.local.entity.download.DownloadEntity?,
     fallbackUrl: String? = null,
     onClick: () -> Unit,
@@ -525,6 +547,13 @@ fun EpisodeItem(
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis
                 )
+                if (progressMs > 0L) {
+                    Text(
+                        text = "Progreso: ${formatElapsed(progressMs)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 if (!episode.info?.duration.isNullOrBlank()) {
                     Text(
                         text = "${episode.info?.duration} min",
@@ -540,6 +569,18 @@ fun EpisodeItem(
                 modifier = Modifier.size(40.dp)
             )
         }
+    }
+}
+
+private fun formatElapsed(ms: Long): String {
+    val totalSec = (ms / 1000L).coerceAtLeast(0L)
+    val h = totalSec / 3600L
+    val m = (totalSec % 3600L) / 60L
+    val s = totalSec % 60L
+    return if (h > 0L) {
+        "%d:%02d:%02d".format(h, m, s)
+    } else {
+        "%02d:%02d".format(m, s)
     }
 }
 

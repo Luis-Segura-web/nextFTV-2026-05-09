@@ -28,6 +28,7 @@ import com.stream.iptvrevolut.presentation.theme.spacing
 fun SettingsScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
+    onOpenParentalControl: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val activeProfile = viewModel.activeProfile
@@ -196,12 +197,11 @@ fun SettingsScreen(
                     currentInterval = viewModel.syncInterval,
                     onIntervalChange = { viewModel.onSyncIntervalChange(it) }
                 )
-                SettingsSwitchItem(
+                SettingsItem(
                     title = stringResource(R.string.settings_parental),
-                    subtitle = stringResource(R.string.settings_parental_subtitle),
+                    subtitle = "Acceso protegido por NIP de 4 dígitos",
                     icon = Icons.Default.Lock,
-                    checked = viewModel.parentalControlEnabled,
-                    onCheckedChange = { viewModel.parentalControlEnabled = it }
+                    onClick = onOpenParentalControl
                 )
                 SettingsItem(
                     title = stringResource(R.string.settings_app_info),

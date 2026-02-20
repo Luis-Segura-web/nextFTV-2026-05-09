@@ -16,6 +16,11 @@ interface ProfileRepository {
     suspend fun setPipEnabled(enabled: Boolean)
     suspend fun isBackgroundPlaybackEnabled(): Boolean
     suspend fun setBackgroundPlaybackEnabled(enabled: Boolean)
+    suspend fun getParentalPin(): String?
+    suspend fun setParentalPin(pin: String)
+    suspend fun clearParentalPin()
+    suspend fun hasParentalPin(): Boolean
+    suspend fun verifyParentalPin(pin: String): Boolean
     suspend fun clearRecents(profileId: Int)
     suspend fun clearDetailCache()
     suspend fun refreshAccountInfo(profile: ServerProfile): Result<Unit>

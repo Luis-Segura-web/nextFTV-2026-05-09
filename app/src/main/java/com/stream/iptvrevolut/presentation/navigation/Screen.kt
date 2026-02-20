@@ -9,6 +9,7 @@ sealed class Screen(val route: String) {
     object Movies : Screen("movies")
     object Series : Screen("series")
     object Settings : Screen("settings")
+    object ParentalControl : Screen("parental_control")
     object Downloads : Screen("downloads")
     
     // Rutas de detalles con parámetros opcionales para auto-reproducción

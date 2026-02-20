@@ -28,7 +28,6 @@ class SettingsViewModel @Inject constructor(
     var backgroundPlaybackEnabled by mutableStateOf(true)
     var autoPlayNext by mutableStateOf(true)
     var useExternalPlayer by mutableStateOf(false)
-    var parentalControlEnabled by mutableStateOf(false)
     var syncInterval by mutableIntStateOf(12)
     var isTmdbEnabled by mutableStateOf(true)
 

@@ -16,6 +16,7 @@ import com.stream.iptvrevolut.data.utils.Converters
 
 import com.stream.iptvrevolut.data.local.entity.cache.DetailCacheEntity
 import com.stream.iptvrevolut.data.local.entity.SyncStatusEntity
+import com.stream.iptvrevolut.data.local.entity.ParentalHiddenCategoryEntity
 
 @Database(
     entities = [
@@ -30,9 +31,10 @@ import com.stream.iptvrevolut.data.local.entity.SyncStatusEntity
         RecentEntity::class,
         DownloadEntity::class,
         DetailCacheEntity::class,
-        SyncStatusEntity::class
+        SyncStatusEntity::class,
+        ParentalHiddenCategoryEntity::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -46,4 +48,5 @@ abstract class IPTVDatabase : RoomDatabase() {
     abstract fun recentDao(): RecentDao
     abstract fun detailCacheDao(): DetailCacheDao
     abstract fun syncStatusDao(): SyncStatusDao
+    abstract fun parentalControlDao(): ParentalControlDao
 }

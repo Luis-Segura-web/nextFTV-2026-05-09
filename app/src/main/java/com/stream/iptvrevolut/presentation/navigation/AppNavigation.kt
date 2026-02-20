@@ -15,6 +15,7 @@ import com.stream.iptvrevolut.presentation.screens.movies.MoviesScreen
 import com.stream.iptvrevolut.presentation.screens.moviedetail.MovieDetailScreen
 import com.stream.iptvrevolut.presentation.screens.series.SeriesScreen
 import com.stream.iptvrevolut.presentation.screens.seriesdetail.SeriesDetailScreen
+import com.stream.iptvrevolut.presentation.screens.settings.ParentalControlScreen
 import com.stream.iptvrevolut.presentation.screens.settings.SettingsScreen
 import com.stream.iptvrevolut.presentation.screens.downloads.DownloadsScreen
 
@@ -137,10 +138,15 @@ fun AppNavigation(navController: NavHostController) {
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
+                onOpenParentalControl = { navController.navigate(Screen.ParentalControl.route) },
                 onLogout = {
                     navController.navigate(Screen.ProfileSelector.route) { popUpTo(Screen.Home.route) { inclusive = true } }
                 }
             )
+        }
+
+        composable(Screen.ParentalControl.route) {
+            ParentalControlScreen(onBack = { navController.popBackStack() })
         }
     }
 }

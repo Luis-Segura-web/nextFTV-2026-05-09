@@ -1,5 +1,6 @@
 package com.stream.iptvrevolut.presentation.screens.seriesdetail
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +16,7 @@ import com.stream.iptvrevolut.domain.model.ServerProfile
 import com.stream.iptvrevolut.domain.repository.ProfileRepository
 import com.stream.iptvrevolut.domain.repository.SeriesRepository
 import com.stream.iptvrevolut.domain.repository.DownloadRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -24,10 +26,12 @@ import javax.inject.Inject
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SeriesDetailViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val profileRepository: ProfileRepository,
     private val seriesRepository: SeriesRepository,
     private val downloadRepository: DownloadRepository
 ) : ViewModel() {
+    private val prefs by lazy { context.getSharedPreferences("playback_resume_prefs", Context.MODE_PRIVATE) }
 
     var seriesDetails by mutableStateOf<TmdbMovieDetailsDto?>(null)
     var seriesStream by mutableStateOf<SeriesStreamEntity?>(null)
@@ -52,6 +56,11 @@ class SeriesDetailViewModel @Inject constructor(
     var isPlayerLoading by mutableStateOf(false)
     var isLoading by mutableStateOf(true)
     var localEpisodePaths = mutableStateMapOf<String, String>()
+    var episodeProgressById = mutableStateMapOf<String, Long>()
+    var lastEpisodeId by mutableStateOf<String?>(null)
+    var lastEpisodeSeason by mutableStateOf<Int?>(null)
+    var lastEpisodeNumber by mutableStateOf<Int?>(null)
+    var lastEpisodePositionMs by mutableStateOf(0L)
 
     val episodeDownloads: Flow<Map<String, DownloadEntity>> = combine(
         profileRepository.getProfiles().map { it.find { p -> p.isActive }?.id },
@@ -81,6 +90,7 @@ class SeriesDetailViewModel @Inject constructor(
                 val streams = seriesRepository.getSeries(profile.id, null).first()
                 val stream = streams.find { it.seriesId == seriesId }?.let { s ->
                     seriesStream = s
+                    loadSeriesProgress(profile.id, s.seriesId)
                     
                     val episodesResult = seriesRepository.getSeriesEpisodes(profile, seriesId)
                     episodesResult.onSuccess { eps ->
@@ -104,6 +114,7 @@ class SeriesDetailViewModel @Inject constructor(
                         } else if (eps.isNotEmpty()) {
                             selectedSeason = eps.keys.sortedBy { it.toIntOrNull() ?: 0 }.firstOrNull()?.toIntOrNull() ?: 1
                         }
+                        loadEpisodeProgressMap(profile.id, seriesId, eps)
                     }
 
                     val tmdbResult = seriesRepository.getSeriesDetails(s)
@@ -234,6 +245,83 @@ class SeriesDetailViewModel @Inject constructor(
                 seriesRepository.addToRecents(profile.id, seriesId, "series")
             }
         }
+    }
+
+    fun updateSeriesProgress(episode: SeriesEpisodeDto, positionMs: Long) {
+        val profileId = activeProfile?.id ?: return
+        val seriesId = seriesStream?.seriesId ?: return
+        if (positionMs < 0L) return
+
+        val episodeId = episode.id ?: return
+        val season = episode.season ?: return
+        val number = episode.episodeNum ?: return
+
+        lastEpisodeId = episodeId
+        lastEpisodeSeason = season
+        lastEpisodeNumber = number
+        lastEpisodePositionMs = positionMs
+        episodeProgressById[episodeId] = positionMs
+
+        prefs.edit()
+            .putString(seriesEpisodeIdKey(profileId, seriesId), episodeId)
+            .putInt(seriesSeasonKey(profileId, seriesId), season)
+            .putInt(seriesEpisodeNumberKey(profileId, seriesId), number)
+            .putLong(seriesPositionKey(profileId, seriesId), positionMs)
+            .putLong(seriesEpisodeProgressKey(profileId, seriesId, episodeId), positionMs)
+            .apply()
+    }
+
+    fun playLastSeenEpisodeOrFallback() {
+        val allEpisodes = episodes ?: return
+        val target = lastEpisodeId?.let { id ->
+            allEpisodes.values.flatten().firstOrNull { it.id == id }
+        } ?: allEpisodes[selectedSeason.toString()]?.firstOrNull()
+            ?: allEpisodes.values.flatten().firstOrNull()
+
+        target?.let { onEpisodeClick(it) }
+    }
+
+    private fun loadSeriesProgress(profileId: Int, seriesId: Int) {
+        lastEpisodeId = prefs.getString(seriesEpisodeIdKey(profileId, seriesId), null)
+        lastEpisodeSeason = prefs.getInt(seriesSeasonKey(profileId, seriesId), -1).takeIf { it >= 0 }
+        lastEpisodeNumber = prefs.getInt(seriesEpisodeNumberKey(profileId, seriesId), -1).takeIf { it >= 0 }
+        lastEpisodePositionMs = prefs.getLong(seriesPositionKey(profileId, seriesId), 0L)
+        lastEpisodeSeason?.let { selectedSeason = it }
+    }
+
+    private fun loadEpisodeProgressMap(
+        profileId: Int,
+        seriesId: Int,
+        episodesMap: Map<String, List<SeriesEpisodeDto>>
+    ) {
+        episodeProgressById.clear()
+        episodesMap.values.flatten().forEach { ep ->
+            val epId = ep.id ?: return@forEach
+            val progress = prefs.getLong(seriesEpisodeProgressKey(profileId, seriesId, epId), 0L)
+            if (progress > 0L) {
+                episodeProgressById[epId] = progress
+            }
+        }
+    }
+
+    private fun seriesEpisodeIdKey(profileId: Int, seriesId: Int): String {
+        return "series_last_episode_id_${profileId}_$seriesId"
+    }
+
+    private fun seriesSeasonKey(profileId: Int, seriesId: Int): String {
+        return "series_last_episode_season_${profileId}_$seriesId"
+    }
+
+    private fun seriesEpisodeNumberKey(profileId: Int, seriesId: Int): String {
+        return "series_last_episode_number_${profileId}_$seriesId"
+    }
+
+    private fun seriesPositionKey(profileId: Int, seriesId: Int): String {
+        return "series_last_episode_position_${profileId}_$seriesId"
+    }
+
+    private fun seriesEpisodeProgressKey(profileId: Int, seriesId: Int, episodeId: String): String {
+        return "series_episode_progress_${profileId}_${seriesId}_$episodeId"
     }
 
     fun toggleFavorite() {

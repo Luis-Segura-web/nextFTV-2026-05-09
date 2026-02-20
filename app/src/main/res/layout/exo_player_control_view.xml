@@ -205,6 +205,11 @@
       android:layout_gravity="top|end"
       android:background="@android:color/transparent">
     <ImageButton
+        android:id="@+id/exo_lock"
+        style="@style/ExoStyledControls.Button.Bottom.Settings"
+        android:src="@drawable/ic_player_lock"
+        android:contentDescription="Bloquear" />
+    <ImageButton
         android:id="@+id/exo_close"
         style="@style/ExoStyledControls.Button.Bottom.Settings"
         android:src="@drawable/ic_player_close"

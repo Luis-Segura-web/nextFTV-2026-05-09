@@ -110,7 +110,7 @@ fun MovieDetailScreen(
                             text = movie?.name ?: "",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1,
+                            maxLines = 3,
                             overflow = TextOverflow.Ellipsis
                         )
                     },
@@ -164,7 +164,9 @@ fun MovieDetailScreen(
                                 title = movie.name,
                                 useOriginalMedia3Controller = true,
                                 isFullScreen = isFullScreen,
+                                resumePositionMs = viewModel.lastMoviePositionMs,
                                 onLoading = { loading -> if (!loading) viewModel.onPlaybackStarted(movie.streamId) },
+                                onProgress = { pos -> viewModel.updateMovieProgress(movie.streamId, pos) },
                                 onFullScreenClick = { isFullScreen = !isFullScreen },
                                 onClose = { 
                                     isFullScreen = false
@@ -255,7 +257,21 @@ fun MovieDetailScreen(
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("REPRODUCIR", fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
+                                Column {
+                                    val hasProgress = viewModel.lastMoviePositionMs > 0L
+                                    Text(
+                                        text = if (hasProgress) "CONTINUAR" else "REPRODUCIR",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 1.sp
+                                    )
+                                    if (hasProgress) {
+                                        Text(
+                                            text = formatElapsed(viewModel.lastMoviePositionMs),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.White.copy(alpha = 0.9f)
+                                        )
+                                    }
+                                }
                             }
 
                             Surface(
@@ -492,5 +508,17 @@ fun ActorItem(name: String, role: String, photoUrl: String?) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 2)
         Text(role, style = MaterialTheme.typography.labelSmall, color = Color.Gray, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private fun formatElapsed(ms: Long): String {
+    val totalSec = (ms / 1000L).coerceAtLeast(0L)
+    val h = totalSec / 3600L
+    val m = (totalSec % 3600L) / 60L
+    val s = totalSec % 60L
+    return if (h > 0L) {
+        "%d:%02d:%02d".format(h, m, s)
+    } else {
+        "%02d:%02d".format(m, s)
     }
 }
