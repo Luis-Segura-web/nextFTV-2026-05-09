@@ -12,5 +12,6 @@ data class LiveCategoryEntity(
     val profileId: Int,
     val categoryId: String,
     val categoryName: String,
-    val parentId: Int = 0
+    val parentId: Int = 0,
+    val orderIndex: Int = 0
 )

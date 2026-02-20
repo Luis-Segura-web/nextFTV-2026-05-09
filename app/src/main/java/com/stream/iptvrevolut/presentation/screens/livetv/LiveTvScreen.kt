@@ -37,6 +37,7 @@ import coil3.compose.AsyncImage
 import com.stream.iptvrevolut.R
 import com.stream.iptvrevolut.data.local.entity.live.LiveStreamEntity
 import com.stream.iptvrevolut.domain.model.SortOrder
+import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.screens.livetv.components.VideoPlayer
 import com.stream.iptvrevolut.presentation.theme.dimens
 import com.stream.iptvrevolut.presentation.theme.spacing
@@ -56,6 +57,7 @@ fun LiveTvScreen(
     val categories by viewModel.categories.collectAsState()
     val streams = viewModel.pagedStreams.collectAsLazyPagingItems()
     val currentStream = viewModel.currentPlayingStream
+    val isInPipMode = PipModeState.isInPipMode
     var isFullScreen by remember { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -114,7 +116,7 @@ fun LiveTvScreen(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            if (!isFullScreen) {
+            if (!isFullScreen && !isInPipMode) {
                 TopAppBar(
                     title = {
                         if (viewModel.isSearchActive) {
@@ -220,10 +222,10 @@ fun LiveTvScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(if (isFullScreen) PaddingValues(0.dp) else innerPadding)
+                .padding(if (isFullScreen || isInPipMode) PaddingValues(0.dp) else innerPadding)
         ) {
             Box(
-                modifier = if (isFullScreen) {
+                modifier = if (isFullScreen || isInPipMode) {
                     Modifier.fillMaxSize()
                 } else {
                     Modifier
@@ -240,6 +242,7 @@ fun LiveTvScreen(
                         VideoPlayer(
                             url = streamUrl,
                             title = currentStream.name,
+                            useOriginalMedia3Controller = true,
                             isFullScreen = isFullScreen,
                             onLoading = { loading ->
                                 viewModel.isPlayerLoading = loading
@@ -258,7 +261,7 @@ fun LiveTvScreen(
                             isLive = true
                         )
                     }
-                } else if (!isFullScreen) {
+                } else if (!isFullScreen && !isInPipMode) {
                     Text(
                         text = stringResource(R.string.live_select_channel),
                         style = MaterialTheme.typography.bodyMedium,
@@ -268,7 +271,7 @@ fun LiveTvScreen(
                 }
             }
 
-            if (!isFullScreen) {
+            if (!isFullScreen && !isInPipMode) {
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()

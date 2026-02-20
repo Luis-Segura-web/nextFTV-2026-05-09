@@ -17,4 +17,34 @@ interface FavoriteDao {
 
     @Query("SELECT streamId FROM favorites WHERE profileId = :profileId AND contentType = :contentType ORDER BY timestamp DESC")
     fun getFavoriteIds(profileId: Int, contentType: String): Flow<List<Int>>
+
+    @Query("""
+        DELETE FROM favorites
+        WHERE profileId = :profileId
+        AND contentType = 'live'
+        AND streamId NOT IN (
+            SELECT streamId FROM live_streams WHERE profileId = :profileId
+        )
+    """)
+    suspend fun clearOrphanLiveFavorites(profileId: Int)
+
+    @Query("""
+        DELETE FROM favorites
+        WHERE profileId = :profileId
+        AND contentType = 'vod'
+        AND streamId NOT IN (
+            SELECT streamId FROM vod_streams WHERE profileId = :profileId
+        )
+    """)
+    suspend fun clearOrphanVodFavorites(profileId: Int)
+
+    @Query("""
+        DELETE FROM favorites
+        WHERE profileId = :profileId
+        AND contentType = 'series'
+        AND streamId NOT IN (
+            SELECT seriesId FROM series_streams WHERE profileId = :profileId
+        )
+    """)
+    suspend fun clearOrphanSeriesFavorites(profileId: Int)
 }

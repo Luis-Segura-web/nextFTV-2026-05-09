@@ -23,4 +23,34 @@ interface RecentDao {
 
     @Query("DELETE FROM recents WHERE profileId = :profileId")
     suspend fun clearRecents(profileId: Int)
+
+    @Query("""
+        DELETE FROM recents
+        WHERE profileId = :profileId
+        AND contentType = 'live'
+        AND streamId NOT IN (
+            SELECT streamId FROM live_streams WHERE profileId = :profileId
+        )
+    """)
+    suspend fun clearOrphanLiveRecents(profileId: Int)
+
+    @Query("""
+        DELETE FROM recents
+        WHERE profileId = :profileId
+        AND contentType = 'vod'
+        AND streamId NOT IN (
+            SELECT streamId FROM vod_streams WHERE profileId = :profileId
+        )
+    """)
+    suspend fun clearOrphanVodRecents(profileId: Int)
+
+    @Query("""
+        DELETE FROM recents
+        WHERE profileId = :profileId
+        AND contentType = 'series'
+        AND streamId NOT IN (
+            SELECT seriesId FROM series_streams WHERE profileId = :profileId
+        )
+    """)
+    suspend fun clearOrphanSeriesRecents(profileId: Int)
 }

@@ -15,6 +15,7 @@ import com.stream.iptvrevolut.data.local.entity.vod.VodStreamEntity
 import com.stream.iptvrevolut.data.utils.Converters
 
 import com.stream.iptvrevolut.data.local.entity.cache.DetailCacheEntity
+import com.stream.iptvrevolut.data.local.entity.SyncStatusEntity
 
 @Database(
     entities = [
@@ -28,9 +29,10 @@ import com.stream.iptvrevolut.data.local.entity.cache.DetailCacheEntity
         FavoriteEntity::class,
         RecentEntity::class,
         DownloadEntity::class,
-        DetailCacheEntity::class
+        DetailCacheEntity::class,
+        SyncStatusEntity::class
     ],
-    version = 16, // Incremento por retryCount en Downloads
+    version = 18,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -43,4 +45,5 @@ abstract class IPTVDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
     abstract fun recentDao(): RecentDao
     abstract fun detailCacheDao(): DetailCacheDao
+    abstract fun syncStatusDao(): SyncStatusDao
 }

@@ -77,4 +77,10 @@ object DatabaseModule {
     fun provideDetailCacheDao(db: IPTVDatabase): DetailCacheDao {
         return db.detailCacheDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideSyncStatusDao(db: IPTVDatabase): SyncStatusDao {
+        return db.syncStatusDao()
+    }
 }

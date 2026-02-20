@@ -133,13 +133,14 @@ fun PremiumModuleCard(
             }
 
             if (onSyncClick != null) {
+                val syncButtonEnabled = enabled && syncState != SyncState.SYNCING
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .height(32.dp)
-                        .clickable { onSyncClick() },
-                    color = accentColor.copy(alpha = 0.9f)
+                        .clickable(enabled = syncButtonEnabled) { onSyncClick() },
+                    color = accentColor.copy(alpha = if (syncButtonEnabled) 0.9f else 0.5f)
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         if (syncState == SyncState.SYNCING) {

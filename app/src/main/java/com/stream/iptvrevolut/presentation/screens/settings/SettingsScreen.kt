@@ -100,7 +100,14 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_pip_subtitle),
                     icon = Icons.Default.PictureInPicture,
                     checked = viewModel.isPipEnabled,
-                    onCheckedChange = { viewModel.isPipEnabled = it }
+                    onCheckedChange = { viewModel.onPipEnabledChange(it) }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.settings_background_playback),
+                    subtitle = stringResource(R.string.settings_background_playback_subtitle),
+                    icon = Icons.Default.Headset,
+                    checked = viewModel.backgroundPlaybackEnabled,
+                    onCheckedChange = { viewModel.onBackgroundPlaybackEnabledChange(it) }
                 )
                 SettingsSwitchItem(
                     title = stringResource(R.string.settings_autoplay),
@@ -108,13 +115,6 @@ fun SettingsScreen(
                     icon = Icons.Default.Autorenew,
                     checked = viewModel.autoPlayNext,
                     onCheckedChange = { viewModel.autoPlayNext = it }
-                )
-                SettingsSwitchItem(
-                    title = stringResource(R.string.settings_external_player),
-                    subtitle = stringResource(R.string.settings_external_player_subtitle),
-                    icon = Icons.AutoMirrored.Filled.OpenInNew,
-                    checked = viewModel.useExternalPlayer,
-                    onCheckedChange = { viewModel.useExternalPlayer = it }
                 )
             }
 

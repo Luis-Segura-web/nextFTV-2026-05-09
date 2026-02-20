@@ -19,4 +19,10 @@ interface DetailCacheDao {
 
     @Query("DELETE FROM details_cache")
     suspend fun clearAllCache()
+
+    @Query("DELETE FROM details_cache WHERE id LIKE 'vod_%'")
+    suspend fun clearVodCache()
+
+    @Query("DELETE FROM details_cache WHERE id LIKE 'episodes_%'")
+    suspend fun clearSeriesEpisodesCache()
 }

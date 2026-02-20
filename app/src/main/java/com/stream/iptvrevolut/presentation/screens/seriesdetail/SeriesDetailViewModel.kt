@@ -176,49 +176,51 @@ class SeriesDetailViewModel @Inject constructor(
     var currentEpisode by mutableStateOf<SeriesEpisodeDto?>(null)
 
     fun onEpisodeClick(episode: SeriesEpisodeDto) {
+        selectedSeason = episode.season ?: selectedSeason
         currentEpisode = episode
         isPlayerActive = true 
     }
 
+    private fun orderedEpisodes(): List<SeriesEpisodeDto> {
+        val allEps = episodes ?: return emptyList()
+        return allEps
+            .toList()
+            .sortedBy { (seasonKey, _) -> seasonKey.toIntOrNull() ?: Int.MAX_VALUE }
+            .flatMap { (_, eps) ->
+                eps.sortedWith(
+                    compareBy<SeriesEpisodeDto> { it.episodeNum ?: Int.MAX_VALUE }
+                        .thenBy { it.id?.toIntOrNull() ?: Int.MAX_VALUE }
+                )
+            }
+    }
+
     fun onNextEpisode() {
         val current = currentEpisode ?: return
-        val allEps = episodes ?: return
-        val seasonEps = allEps[selectedSeason.toString()] ?: return
-        val currentIndex = seasonEps.indexOfFirst { it.id == current.id }
-        
-        if (currentIndex != -1 && currentIndex < seasonEps.size - 1) {
-            onEpisodeClick(seasonEps[currentIndex + 1])
-        } else {
-            val sortedSeasons = allEps.keys.mapNotNull { it.toIntOrNull() }.sorted()
-            val nextSeason = sortedSeasons.firstOrNull { it > selectedSeason }
-            if (nextSeason != null) {
-                val nextSeasonEps = allEps[nextSeason.toString()]
-                if (!nextSeasonEps.isNullOrEmpty()) {
-                    selectedSeason = nextSeason
-                    onEpisodeClick(nextSeasonEps.first())
-                }
-            }
+        val flattened = orderedEpisodes()
+        if (flattened.isEmpty()) return
+
+        val currentIndex = flattened.indexOfFirst { it.id == current.id }
+        if (currentIndex == -1) {
+            onEpisodeClick(flattened.first())
+            return
+        }
+        if (currentIndex < flattened.lastIndex) {
+            onEpisodeClick(flattened[currentIndex + 1])
         }
     }
 
     fun onPreviousEpisode() {
         val current = currentEpisode ?: return
-        val allEps = episodes ?: return
-        val seasonEps = allEps[selectedSeason.toString()] ?: return
-        val currentIndex = seasonEps.indexOfFirst { it.id == current.id }
-        
+        val flattened = orderedEpisodes()
+        if (flattened.isEmpty()) return
+
+        val currentIndex = flattened.indexOfFirst { it.id == current.id }
+        if (currentIndex == -1) {
+            onEpisodeClick(flattened.first())
+            return
+        }
         if (currentIndex > 0) {
-            onEpisodeClick(seasonEps[currentIndex - 1])
-        } else {
-            val sortedSeasons = allEps.keys.mapNotNull { it.toIntOrNull() }.sorted()
-            val prevSeason = sortedSeasons.lastOrNull { it < selectedSeason }
-            if (prevSeason != null) {
-                val prevSeasonEps = allEps[prevSeason.toString()]
-                if (!prevSeasonEps.isNullOrEmpty()) {
-                    selectedSeason = prevSeason
-                    onEpisodeClick(prevSeasonEps.last())
-                }
-            }
+            onEpisodeClick(flattened[currentIndex - 1])
         }
     }
     

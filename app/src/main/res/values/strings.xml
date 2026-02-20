@@ -109,6 +109,8 @@
     
     <string name="settings_pip">Picture-in-Picture (PiP)</string>
     <string name="settings_pip_subtitle">Reproducir en ventana flotante al salir</string>
+    <string name="settings_background_playback">Reproducción en segundo plano</string>
+    <string name="settings_background_playback_subtitle">Continuar audio/video al salir de la app</string>
     <string name="settings_autoplay">Autoplay Siguiente Episodio</string>
     <string name="settings_autoplay_subtitle">Reproducir automáticamente al terminar</string>
     <string name="settings_external_player">Usar Reproductor Externo</string>

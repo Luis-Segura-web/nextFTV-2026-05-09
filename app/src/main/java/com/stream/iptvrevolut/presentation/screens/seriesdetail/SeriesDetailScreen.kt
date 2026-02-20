@@ -31,6 +31,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.stream.iptvrevolut.R
 import com.stream.iptvrevolut.data.remote.SeriesEpisodeDto
+import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.screens.livetv.components.VideoPlayer
 import com.stream.iptvrevolut.presentation.screens.moviedetail.CircleActionButton
 import com.stream.iptvrevolut.presentation.screens.moviedetail.InfoChip
@@ -56,6 +57,7 @@ fun SeriesDetailScreen(
 ) {
     val context = LocalContext.current
     val activity = remember { context.findActivity() }
+    val isInPipMode = PipModeState.isInPipMode
     var isFullScreen by remember { mutableStateOf(false) }
 
     LaunchedEffect(seriesId) {
@@ -85,6 +87,7 @@ fun SeriesDetailScreen(
     val variationItems = viewModel.variationItems
     val isFavorite by viewModel.isFavorite().collectAsState(initial = false)
     val episodeDownloads by viewModel.episodeDownloads.collectAsState(initial = emptyMap())
+    var lastRecentRegisteredUrl by remember(seriesId) { mutableStateOf<String?>(null) }
 
     if (viewModel.showVariationSelector) {
         SourceSelectionSheet(
@@ -123,7 +126,7 @@ fun SeriesDetailScreen(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            if (!isFullScreen) {
+            if (!isFullScreen && !isInPipMode) {
                 TopAppBar(
                     modifier = Modifier.statusBarsPadding(),
                     title = {
@@ -166,10 +169,10 @@ fun SeriesDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(if (isFullScreen) PaddingValues(0.dp) else innerPadding)
+                    .padding(if (isFullScreen || isInPipMode) PaddingValues(0.dp) else innerPadding)
             ) {
                 // 1. HEADER DINÁMICO
-                val playerModifier = if (isFullScreen) {
+                val playerModifier = if (isFullScreen || isInPipMode) {
                     Modifier.fillMaxSize()
                 } else {
                     Modifier
@@ -184,8 +187,15 @@ fun SeriesDetailScreen(
                             VideoPlayer(
                                 url = streamUrl,
                                 title = "${series.name} - S${currentEpisode.season?.toString()?.padStart(2, '0')}E${currentEpisode.episodeNum?.toString()?.padStart(2, '0')} - ${currentEpisode.title}",
+                                useOriginalMedia3Controller = true,
                                 isFullScreen = isFullScreen,
-                                onLoading = { loading -> viewModel.isPlayerLoading = loading },
+                                onLoading = { loading ->
+                                    viewModel.isPlayerLoading = loading
+                                    if (!loading && lastRecentRegisteredUrl != streamUrl) {
+                                        viewModel.onPlaybackStarted(series.seriesId)
+                                        lastRecentRegisteredUrl = streamUrl
+                                    }
+                                },
                                 onFullScreenClick = { isFullScreen = !isFullScreen },
                                 onNext = { viewModel.onNextEpisode() },
                                 onPrevious = { viewModel.onPreviousEpisode() },
@@ -230,7 +240,7 @@ fun SeriesDetailScreen(
                 }
 
                 // 2. TABS DE NAVEGACIÓN (Solo si no es FullScreen)
-                if (!isFullScreen) {
+                if (!isFullScreen && !isInPipMode) {
                     TabRow(
                         selectedTabIndex = selectedDetailTab,
                         containerColor = MaterialTheme.colorScheme.background,

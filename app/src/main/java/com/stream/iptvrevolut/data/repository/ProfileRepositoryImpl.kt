@@ -25,13 +25,6 @@ class ProfileRepositoryImpl @Inject constructor(
 
     private val prefs = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
 
-    override suspend fun updateSyncTime(profileId: Int, module: String, timestamp: Long) {
-        when(module) {
-            "live" -> profileDao.updateLiveSyncTime(profileId, timestamp)
-            "movies" -> profileDao.updateMoviesSyncTime(profileId, timestamp)
-            "series" -> profileDao.updateSeriesSyncTime(profileId, timestamp)
-        }
-    }
 
     override suspend fun getSyncInterval(): Int {
         return prefs.getInt("sync_interval", 12) 
@@ -47,6 +40,22 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun setTmdbEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("tmdb_enabled", enabled).apply()
+    }
+
+    override suspend fun isPipEnabled(): Boolean {
+        return prefs.getBoolean("pip_enabled", true)
+    }
+
+    override suspend fun setPipEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("pip_enabled", enabled).apply()
+    }
+
+    override suspend fun isBackgroundPlaybackEnabled(): Boolean {
+        return prefs.getBoolean("background_playback_enabled", true)
+    }
+
+    override suspend fun setBackgroundPlaybackEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("background_playback_enabled", enabled).apply()
     }
 
     override suspend fun clearRecents(profileId: Int) {

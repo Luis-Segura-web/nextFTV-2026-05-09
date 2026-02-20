@@ -8,9 +8,6 @@ import com.stream.iptvrevolut.domain.model.ServerProfile
 import kotlinx.coroutines.flow.Flow
 
 interface SeriesRepository {
-    suspend fun syncCategories(profile: ServerProfile): Result<Unit>
-    suspend fun syncSeries(profile: ServerProfile, categoryId: String? = null): Result<Unit>
-    
     fun getCategories(profileId: Int): Flow<List<SeriesCategoryEntity>>
     fun getSeries(profileId: Int, categoryId: String?): Flow<List<SeriesStreamEntity>>
     fun getPagedSeries(profileId: Int, categoryId: String?, query: String, sortOrder: String): kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<SeriesStreamEntity>>

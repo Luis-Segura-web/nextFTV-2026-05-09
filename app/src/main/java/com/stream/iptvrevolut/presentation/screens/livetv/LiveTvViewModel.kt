@@ -92,33 +92,33 @@ class LiveTvViewModel @Inject constructor(
     }
 
     fun onNextChannel() {
-        viewModelScope.launch {
-            val profile = activeProfile ?: return@launch
-            val current = currentPlayingStream ?: return@launch
-            val streams = repository.getFilteredStreams(profile.id, selectedCategoryId, searchQuery, sortOrder.name)
-            if (streams.isNotEmpty()) {
-                val currentIndex = streams.indexOfFirst { it.streamId == current.streamId }
-                if (currentIndex != -1) {
-                    val nextIndex = (currentIndex + 1) % streams.size
-                    currentPlayingStream = streams[nextIndex]
-                }
-            }
-        }
+        viewModelScope.launch { navigateChannel(step = 1) }
     }
 
     fun onPreviousChannel() {
-        viewModelScope.launch {
-            val profile = activeProfile ?: return@launch
-            val current = currentPlayingStream ?: return@launch
-            val streams = repository.getFilteredStreams(profile.id, selectedCategoryId, searchQuery, sortOrder.name)
-            if (streams.isNotEmpty()) {
-                val currentIndex = streams.indexOfFirst { it.streamId == current.streamId }
-                if (currentIndex != -1) {
-                    val prevIndex = if (currentIndex - 1 < 0) streams.size - 1 else currentIndex - 1
-                    currentPlayingStream = streams[prevIndex]
-                }
-            }
+        viewModelScope.launch { navigateChannel(step = -1) }
+    }
+
+    private suspend fun navigateChannel(step: Int) {
+        val profile = activeProfile ?: return
+        val streams = repository
+            .getFilteredStreams(profile.id, selectedCategoryId, searchQuery, sortOrder.name)
+            .distinctBy { it.streamId }
+        if (streams.isEmpty()) return
+
+        val current = currentPlayingStream
+        val currentIndex = current?.let { now ->
+            streams.indexOfFirst { it.streamId == now.streamId }
+        } ?: -1
+
+        val targetIndex = when {
+            currentIndex == -1 && step > 0 -> 0
+            currentIndex == -1 && step < 0 -> streams.lastIndex
+            else -> (currentIndex + step + streams.size) % streams.size
         }
+
+        currentPlayingStream = streams[targetIndex]
+        playerError = null
     }
 
     fun onToggleFavorite(stream: LiveStreamEntity) {

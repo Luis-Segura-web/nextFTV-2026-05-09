@@ -65,11 +65,7 @@ fun AppNavigation(navController: NavHostController) {
 
         composable(Screen.Movies.route) {
             MoviesScreen(
-                onBack = { 
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                    }
-                },
+                onBack = { navController.popBackStack() },
                 onHome = { }, // Not used anymore as per request to remove button
                 onMovieClick = { movieId -> navController.navigate(Screen.MovieDetail.createRoute(movieId)) }
             )
@@ -88,11 +84,7 @@ fun AppNavigation(navController: NavHostController) {
                 streamId = movieId,
                 autoPlay = autoPlay,
                 onBack = { navController.popBackStack() },
-                onHome = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                    }
-                },
+                onHome = { navController.popBackStack(Screen.Home.route, false) },
                 onMovieClick = { id ->
                     navController.navigate(Screen.MovieDetail.createRoute(id))
                 }
@@ -101,11 +93,7 @@ fun AppNavigation(navController: NavHostController) {
 
         composable(Screen.Series.route) {
             SeriesScreen(
-                onBack = { 
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                    }
-                },
+                onBack = { navController.popBackStack() },
                 onHome = { }, // Not used anymore
                 onSeriesClick = { seriesId -> navController.navigate(Screen.SeriesDetail.createRoute(seriesId)) }
             )
@@ -127,11 +115,7 @@ fun AppNavigation(navController: NavHostController) {
                 initialEpisodeId = episodeId,
                 autoPlay = autoPlay,
                 onBack = { navController.popBackStack() },
-                onHome = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
-                    }
-                },
+                onHome = { navController.popBackStack(Screen.Home.route, false) },
                 onSeriesClick = { id ->
                     navController.navigate(Screen.SeriesDetail.createRoute(id))
                 }

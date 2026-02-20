@@ -11,7 +11,7 @@ interface VodDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategories(categories: List<VodCategoryEntity>)
 
-    @Query("SELECT * FROM vod_categories WHERE profileId = :profileId")
+    @Query("SELECT * FROM vod_categories WHERE profileId = :profileId ORDER BY orderIndex ASC")
     fun getCategories(profileId: Int): Flow<List<VodCategoryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

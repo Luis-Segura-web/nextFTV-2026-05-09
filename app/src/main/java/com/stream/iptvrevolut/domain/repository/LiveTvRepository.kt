@@ -6,17 +6,12 @@ import com.stream.iptvrevolut.data.local.entity.live.LiveCategoryEntity
 
 import com.stream.iptvrevolut.data.local.entity.live.LiveStreamEntity
 
-import com.stream.iptvrevolut.domain.model.ServerProfile
-
 import kotlinx.coroutines.flow.Flow
 
 
 
 interface LiveTvRepository {
 
-    suspend fun syncCategories(profile: ServerProfile): Result<Unit>
-
-    suspend fun syncStreams(profile: ServerProfile, categoryId: String? = null): Result<Unit>
 
     fun getCategories(profileId: Int): Flow<List<LiveCategoryEntity>>
 

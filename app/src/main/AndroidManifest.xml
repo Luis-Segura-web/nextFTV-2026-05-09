@@ -51,6 +51,10 @@
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
 
+        <receiver
+            android:name=".presentation.player.PipActionReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>

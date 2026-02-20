@@ -31,6 +31,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.stream.iptvrevolut.R
 import com.stream.iptvrevolut.data.remote.tmdb.TmdbMovieShortDto
+import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.screens.livetv.components.VideoPlayer
 import com.stream.iptvrevolut.presentation.components.download.CircularDownloadButton
 import com.stream.iptvrevolut.presentation.components.selector.SourceSelectionSheet
@@ -51,6 +52,7 @@ fun MovieDetailScreen(
 ) {
     val context = LocalContext.current
     val activity = remember { context.findActivity() }
+    val isInPipMode = PipModeState.isInPipMode
     var isFullScreen by remember { mutableStateOf(false) }
 
     LaunchedEffect(streamId) {
@@ -100,7 +102,7 @@ fun MovieDetailScreen(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (!isFullScreen) {
+            if (!isFullScreen && !isInPipMode) {
                 TopAppBar(
                     modifier = Modifier.statusBarsPadding(),
                     title = {
@@ -140,10 +142,10 @@ fun MovieDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(if (isFullScreen) PaddingValues(0.dp) else innerPadding)
+                    .padding(if (isFullScreen || isInPipMode) PaddingValues(0.dp) else innerPadding)
             ) {
                 // 1. HEADER (DINÁMICO SEGÚN FULLSCREEN)
-                val playerModifier = if (isFullScreen) {
+                val playerModifier = if (isFullScreen || isInPipMode) {
                     Modifier.fillMaxSize()
                 } else {
                     Modifier
@@ -160,6 +162,7 @@ fun MovieDetailScreen(
                             VideoPlayer(
                                 url = streamUrl,
                                 title = movie.name,
+                                useOriginalMedia3Controller = true,
                                 isFullScreen = isFullScreen,
                                 onLoading = { loading -> if (!loading) viewModel.onPlaybackStarted(movie.streamId) },
                                 onFullScreenClick = { isFullScreen = !isFullScreen },
@@ -206,7 +209,7 @@ fun MovieDetailScreen(
                 }
 
                 // 2. CONTENIDO SCROLLABLE (Solo visible si NO es FullScreen)
-                if (!isFullScreen) {
+                if (!isFullScreen && !isInPipMode) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()

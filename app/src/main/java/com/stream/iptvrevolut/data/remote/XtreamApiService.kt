@@ -6,8 +6,10 @@ import com.stream.iptvrevolut.data.remote.utils.SafeListStringAdapter
 import com.stream.iptvrevolut.data.remote.dto.LoginResponseDto
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import okhttp3.ResponseBody
 import retrofit2.http.GET
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 import retrofit2.http.Url
 
 interface XtreamApiService {
@@ -36,6 +38,16 @@ interface XtreamApiService {
         @Query("category_id") categoryId: String? = null
     ): List<LiveStreamDto>
 
+    @Streaming
+    @GET
+    suspend fun getLiveStreamsRaw(
+        @Url url: String,
+        @Query("action") action: String = "get_live_streams",
+        @Query("username") username: String,
+        @Query("password") password: String,
+        @Query("category_id") categoryId: String? = null
+    ): ResponseBody
+
     @GET
     suspend fun getVodCategories(
         @Url url: String,
@@ -52,6 +64,16 @@ interface XtreamApiService {
         @Query("password") password: String,
         @Query("category_id") categoryId: String? = null
     ): List<VodStreamDto>
+
+    @Streaming
+    @GET
+    suspend fun getVodStreamsRaw(
+        @Url url: String,
+        @Query("action") action: String = "get_vod_streams",
+        @Query("username") username: String,
+        @Query("password") password: String,
+        @Query("category_id") categoryId: String? = null
+    ): ResponseBody
 
     @GET
     suspend fun getVodInfo(
@@ -78,6 +100,16 @@ interface XtreamApiService {
         @Query("password") password: String,
         @Query("category_id") categoryId: String? = null
     ): List<SeriesStreamDto>
+
+    @Streaming
+    @GET
+    suspend fun getSeriesRaw(
+        @Url url: String,
+        @Query("action") action: String = "get_series",
+        @Query("username") username: String,
+        @Query("password") password: String,
+        @Query("category_id") categoryId: String? = null
+    ): ResponseBody
 
     @GET
     suspend fun getSeriesInfo(

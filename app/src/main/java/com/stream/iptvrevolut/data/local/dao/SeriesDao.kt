@@ -11,7 +11,7 @@ interface SeriesDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategories(categories: List<SeriesCategoryEntity>)
 
-    @Query("SELECT * FROM series_categories WHERE profileId = :profileId")
+    @Query("SELECT * FROM series_categories WHERE profileId = :profileId ORDER BY orderIndex ASC")
     fun getCategories(profileId: Int): Flow<List<SeriesCategoryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

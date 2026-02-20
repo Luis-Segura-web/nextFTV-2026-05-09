@@ -7,9 +7,7 @@ import com.stream.iptvrevolut.domain.model.ServerProfile
 import kotlinx.coroutines.flow.Flow
 
 interface VodRepository {
-    suspend fun syncCategories(profile: ServerProfile): Result<Unit>
-    suspend fun syncStreams(profile: ServerProfile, categoryId: String? = null): Result<Unit>
-    
+
     fun getCategories(profileId: Int): Flow<List<VodCategoryEntity>>
     fun getStreams(profileId: Int, categoryId: String?): Flow<List<VodStreamEntity>>
     fun getPagedStreams(profileId: Int, categoryId: String?, query: String, sortOrder: String): kotlinx.coroutines.flow.Flow<androidx.paging.PagingData<VodStreamEntity>>

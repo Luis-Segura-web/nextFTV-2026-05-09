@@ -11,7 +11,7 @@ interface LiveTvDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategories(categories: List<LiveCategoryEntity>)
 
-    @Query("SELECT * FROM live_categories WHERE profileId = :profileId")
+    @Query("SELECT * FROM live_categories WHERE profileId = :profileId ORDER BY orderIndex ASC")
     fun getCategories(profileId: Int): Flow<List<LiveCategoryEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

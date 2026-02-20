@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.stream.iptvrevolut.domain.model.ServerProfile
 import com.stream.iptvrevolut.domain.repository.ProfileRepository
+import com.stream.iptvrevolut.presentation.player.BackgroundPlaybackPreferences
+import com.stream.iptvrevolut.presentation.player.PipPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -23,6 +25,7 @@ class SettingsViewModel @Inject constructor(
     
     // Configuración simulada (en una app real se usaría DataStore)
     var isPipEnabled by mutableStateOf(true)
+    var backgroundPlaybackEnabled by mutableStateOf(true)
     var autoPlayNext by mutableStateOf(true)
     var useExternalPlayer by mutableStateOf(false)
     var parentalControlEnabled by mutableStateOf(false)
@@ -39,6 +42,26 @@ class SettingsViewModel @Inject constructor(
             activeProfile = profiles.find { it.isActive }
             syncInterval = profileRepository.getSyncInterval()
             isTmdbEnabled = profileRepository.isTmdbEnabled()
+            isPipEnabled = profileRepository.isPipEnabled()
+            backgroundPlaybackEnabled = profileRepository.isBackgroundPlaybackEnabled()
+            PipPreferences.updateEnabled(isPipEnabled)
+            BackgroundPlaybackPreferences.updateEnabled(backgroundPlaybackEnabled)
+        }
+    }
+
+    fun onPipEnabledChange(enabled: Boolean) {
+        viewModelScope.launch {
+            profileRepository.setPipEnabled(enabled)
+            isPipEnabled = enabled
+            PipPreferences.updateEnabled(enabled)
+        }
+    }
+
+    fun onBackgroundPlaybackEnabledChange(enabled: Boolean) {
+        viewModelScope.launch {
+            profileRepository.setBackgroundPlaybackEnabled(enabled)
+            backgroundPlaybackEnabled = enabled
+            BackgroundPlaybackPreferences.updateEnabled(enabled)
         }
     }
 

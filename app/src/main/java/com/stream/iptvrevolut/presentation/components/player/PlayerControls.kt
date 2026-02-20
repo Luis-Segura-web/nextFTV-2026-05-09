@@ -43,6 +43,7 @@ fun PlayerControls(
     isSmall: Boolean,
     availableTracks: Tracks = Tracks.EMPTY,
     currentSpeed: Float = 1.0f,
+    pipEnabled: Boolean = true,
     onPlayPause: () -> Unit,
     onSeekBack: () -> Unit,
     onSeekForward: () -> Unit,
@@ -307,7 +308,9 @@ fun PlayerControls(
                                                 }
                                             }
                 
-                                            GlassActionButton(icon = Icons.Default.PictureInPicture, onClick = { onPip(); onInteraction() }, size = if (isSmall) 32.dp else 40.dp, containerColor = secondaryBtnBg, borderColor = secondaryBtnBorder)
+                                            if (pipEnabled) {
+                                                GlassActionButton(icon = Icons.Default.PictureInPicture, onClick = { onPip(); onInteraction() }, size = if (isSmall) 32.dp else 40.dp, containerColor = secondaryBtnBg, borderColor = secondaryBtnBorder)
+                                            }
                                             GlassActionButton(icon = if (isSmall) Icons.Default.Fullscreen else Icons.Default.FullscreenExit, onClick = { onFullScreen(); onInteraction() }, size = if (isSmall) 32.dp else 40.dp, containerColor = secondaryBtnBg, borderColor = secondaryBtnBorder)
                                         }
                                     }
