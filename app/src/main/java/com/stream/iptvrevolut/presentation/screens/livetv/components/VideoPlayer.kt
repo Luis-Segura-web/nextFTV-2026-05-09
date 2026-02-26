@@ -64,6 +64,7 @@ fun VideoPlayer(
     onClose: () -> Unit = {},
     onPipRequested: (() -> Unit)? = null,
     onProgress: (Long) -> Unit = {},
+    onProgressSnapshot: (Long, Long) -> Unit = { _, _ -> },
     isLive: Boolean = false,
     isSmall: Boolean = false
 ) {
@@ -211,10 +212,13 @@ fun VideoPlayer(
     LaunchedEffect(exoPlayer) {
         while (isActive) {
             position = exoPlayer.currentPosition
+            val safeDuration = exoPlayer.duration.coerceAtLeast(0L)
+            duration = safeDuration
             if (exoPlayer.playbackState == Player.STATE_READY) {
-                onProgress(position.coerceAtLeast(0L))
+                val safePosition = position.coerceAtLeast(0L)
+                onProgress(safePosition)
+                onProgressSnapshot(safePosition, safeDuration)
             }
-            duration = exoPlayer.duration.coerceAtLeast(0L)
             bufferedPosition = exoPlayer.bufferedPosition
             delay(1000)
         }
@@ -308,8 +312,7 @@ fun VideoPlayer(
                             )
                             findViewById<View>(com.stream.iptvrevolut.R.id.exo_pip)?.visibility =
                                 if (isPipEnabled) View.VISIBLE else View.GONE
-                            findViewById<View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.visibility =
-                                if (isPipEnabled) View.VISIBLE else View.GONE
+                            findViewById<View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.visibility = View.GONE
                             syncTopTitleVisibility(this, visibility)
                             applyInlineProgressLayout(this, isInline = !isFullScreen)
                             applyLockStateToOriginalController(this, isLocked, visibility)
@@ -338,8 +341,7 @@ fun VideoPlayer(
                 )
                 playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_pip)?.visibility =
                     if (isPipEnabled) View.VISIBLE else View.GONE
-                playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.visibility =
-                    if (isPipEnabled) View.VISIBLE else View.GONE
+                playerView.findViewById<View>(com.stream.iptvrevolut.R.id.exo_minimal_pip)?.visibility = View.GONE
                 playerView.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_pip)?.setOnClickListener {
                     if (isPipEnabled) {
                         playerViewRef?.hideController()
@@ -353,6 +355,10 @@ fun VideoPlayer(
                     }
                 }
                 playerView.findViewById<android.view.View>(com.stream.iptvrevolut.R.id.exo_close)?.setOnClickListener {
+                    onProgressSnapshot(
+                        exoPlayer.currentPosition.coerceAtLeast(0L),
+                        exoPlayer.duration.coerceAtLeast(0L)
+                    )
                     GlobalPlaybackManager.stopAndClear()
                     onClose()
                 }
@@ -434,6 +440,10 @@ fun VideoPlayer(
                 onPrevious = { resetControlsTimer(); onPrevious?.invoke() },
                 onFullScreen = { resetControlsTimer(); onFullScreenClick() },
                 onClose = {
+                    onProgressSnapshot(
+                        exoPlayer.currentPosition.coerceAtLeast(0L),
+                        exoPlayer.duration.coerceAtLeast(0L)
+                    )
                     GlobalPlaybackManager.stopAndClear()
                     onClose()
                 },

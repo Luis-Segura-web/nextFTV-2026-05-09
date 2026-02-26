@@ -88,6 +88,9 @@ fun SeriesDetailScreen(
     val isFavorite by viewModel.isFavorite().collectAsState(initial = false)
     val episodeDownloads by viewModel.episodeDownloads.collectAsState(initial = emptyMap())
     var lastRecentRegisteredUrl by remember(seriesId) { mutableStateOf<String?>(null) }
+    var lastPlayerPositionMs by remember(seriesId) { mutableLongStateOf(0L) }
+    var lastPlayerDurationMs by remember(seriesId) { mutableLongStateOf(0L) }
+    var pendingResumeEpisode by remember(seriesId) { mutableStateOf<SeriesEpisodeDto?>(null) }
 
     if (viewModel.showVariationSelector) {
         SourceSelectionSheet(
@@ -99,6 +102,37 @@ fun SeriesDetailScreen(
             },
             onDismiss = { viewModel.showVariationSelector = false },
             sourceName = { it.name }
+        )
+    }
+
+    pendingResumeEpisode?.let { episode ->
+        val resumeMs = viewModel.episodeProgressById[episode.id] ?: 0L
+        AlertDialog(
+            onDismissRequest = { pendingResumeEpisode = null },
+            title = { Text("Reanudar episodio") },
+            text = {
+                Text("Este episodio tiene avance guardado (${formatElapsed(resumeMs)}). ¿Deseas continuar o empezar desde cero?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingResumeEpisode = null
+                        viewModel.onEpisodeClick(episode)
+                    }
+                ) {
+                    Text("Continuar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        pendingResumeEpisode = null
+                        viewModel.onEpisodeClickFromStart(episode)
+                    }
+                ) {
+                    Text("Desde cero")
+                }
+            }
         )
     }
 
@@ -116,6 +150,14 @@ fun SeriesDetailScreen(
         if (isFullScreen) {
             isFullScreen = false
         } else if (viewModel.isPlayerActive) {
+            currentEpisode?.let { episode ->
+                val persistedProgress = viewModel.episodeProgressById[episode.id] ?: 0L
+                val resolvedPositionMs = maxOf(lastPlayerPositionMs, persistedProgress)
+                val resolvedDurationMs = lastPlayerDurationMs
+                    .takeIf { it > 0L }
+                    ?: parseEpisodeDurationMs(episode.info?.duration)
+                viewModel.onPlayerClosed(episode, resolvedPositionMs, resolvedDurationMs)
+            }
             viewModel.isPlayerActive = false
         } else {
             onBack()
@@ -139,7 +181,23 @@ fun SeriesDetailScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(
+                            onClick = {
+                                if (viewModel.isPlayerActive) {
+                                    currentEpisode?.let { episode ->
+                                        val persistedProgress = viewModel.episodeProgressById[episode.id] ?: 0L
+                                        val resolvedPositionMs = maxOf(lastPlayerPositionMs, persistedProgress)
+                                        val resolvedDurationMs = lastPlayerDurationMs
+                                            .takeIf { it > 0L }
+                                            ?: parseEpisodeDurationMs(episode.info?.duration)
+                                        viewModel.onPlayerClosed(episode, resolvedPositionMs, resolvedDurationMs)
+                                    }
+                                    viewModel.isPlayerActive = false
+                                } else {
+                                    onBack()
+                                }
+                            }
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                         }
                     },
@@ -184,6 +242,10 @@ fun SeriesDetailScreen(
                     if (viewModel.isPlayerActive && currentEpisode != null && profile != null) {
                         val streamUrl = viewModel.localEpisodePaths[currentEpisode.id] ?: "${profile.url}series/${profile.username}/${profile.password}/${currentEpisode.id}.${currentEpisode.containerExtension ?: "mp4"}"
                         val resumeMs = viewModel.episodeProgressById[currentEpisode.id] ?: 0L
+                        LaunchedEffect(streamUrl, resumeMs) {
+                            lastPlayerPositionMs = resumeMs.coerceAtLeast(0L)
+                            lastPlayerDurationMs = 0L
+                        }
                         key(streamUrl) {
                             VideoPlayer(
                                 url = streamUrl,
@@ -203,12 +265,24 @@ fun SeriesDetailScreen(
                                         viewModel.updateSeriesProgress(ep, pos)
                                     }
                                 },
+                                onProgressSnapshot = { pos, duration ->
+                                    lastPlayerPositionMs = pos
+                                    lastPlayerDurationMs = duration
+                                },
                                 onFullScreenClick = { isFullScreen = !isFullScreen },
                                 onNext = { viewModel.onNextEpisode() },
                                 onPrevious = { viewModel.onPreviousEpisode() },
-                                onClose = { 
+                                onClose = {
+                                    currentEpisode?.let { episode ->
+                                        val persistedProgress = viewModel.episodeProgressById[episode.id] ?: 0L
+                                        val resolvedPositionMs = maxOf(lastPlayerPositionMs, persistedProgress)
+                                        val resolvedDurationMs = lastPlayerDurationMs
+                                            .takeIf { it > 0L }
+                                            ?: parseEpisodeDurationMs(episode.info?.duration)
+                                        viewModel.onPlayerClosed(episode, resolvedPositionMs, resolvedDurationMs)
+                                    }
                                     isFullScreen = false
-                                    viewModel.isPlayerActive = false 
+                                    viewModel.isPlayerActive = false
                                 },
                                 isLive = false,
                                 modifier = Modifier.fillMaxSize()
@@ -316,17 +390,31 @@ fun SeriesDetailScreen(
                                             Icon(Icons.Default.PlayArrow, contentDescription = null)
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Column {
-                                                val hasProgress = viewModel.lastEpisodeId != null && viewModel.lastEpisodePositionMs > 0L
+                                                val actionMode = viewModel.primaryActionMode
+                                                val hasEpisodeTarget = viewModel.lastEpisodeSeason != null && viewModel.lastEpisodeNumber != null
+                                                val actionText = when (actionMode) {
+                                                    SeriesDetailViewModel.PrimaryActionMode.PLAY -> "REPRODUCIR"
+                                                    SeriesDetailViewModel.PrimaryActionMode.CONTINUE -> "CONTINUAR"
+                                                    SeriesDetailViewModel.PrimaryActionMode.NEXT -> "SIGUIENTE EPISODIO"
+                                                }
                                                 Text(
-                                                    text = if (hasProgress) "CONTINUAR" else "REPRODUCIR",
+                                                    text = actionText,
                                                     fontWeight = FontWeight.ExtraBold,
                                                     letterSpacing = 1.sp
                                                 )
-                                                if (hasProgress) {
+                                                if (hasEpisodeTarget) {
                                                     val season = viewModel.lastEpisodeSeason ?: 0
                                                     val episode = viewModel.lastEpisodeNumber ?: 0
+                                                    val subtitle = when (actionMode) {
+                                                        SeriesDetailViewModel.PrimaryActionMode.CONTINUE ->
+                                                            "S${season}E${episode} - ${formatElapsed(viewModel.lastEpisodePositionMs)}"
+                                                        SeriesDetailViewModel.PrimaryActionMode.NEXT ->
+                                                            "S${season}E${episode}"
+                                                        SeriesDetailViewModel.PrimaryActionMode.PLAY ->
+                                                            "S${season}E${episode}"
+                                                    }
                                                     Text(
-                                                        text = "S${season}E${episode} - ${formatElapsed(viewModel.lastEpisodePositionMs)}",
+                                                        text = subtitle,
                                                         style = MaterialTheme.typography.labelSmall,
                                                         color = Color.White.copy(alpha = 0.9f)
                                                     )
@@ -459,7 +547,18 @@ fun SeriesDetailScreen(
                                         progressMs = viewModel.episodeProgressById[episode.id] ?: 0L,
                                         download = episodeDownloads[episode.id],
                                         fallbackUrl = seriesBackdropUrl,
-                                        onClick = { viewModel.onEpisodeClick(episode) },
+                                        onClick = {
+                                            val savedProgress = viewModel.episodeProgressById[episode.id] ?: 0L
+                                            val durationMs = parseEpisodeDurationMs(episode.info?.duration)
+                                            val isCompletedAt100 = durationMs > 0L && savedProgress >= durationMs
+                                            val hasResumeToAsk = savedProgress > 0L && !isCompletedAt100
+
+                                            when {
+                                                hasResumeToAsk -> pendingResumeEpisode = episode
+                                                isCompletedAt100 -> viewModel.onEpisodeClickFromStart(episode)
+                                                else -> viewModel.onEpisodeClick(episode)
+                                            }
+                                        },
                                         onDownload = { viewModel.handleEpisodeDownloadClick(episode) }
                                     )
                                 }
@@ -482,6 +581,17 @@ fun EpisodeItem(
     onClick: () -> Unit,
     onDownload: () -> Unit
 ) {
+    val durationMs = remember(episode.info?.duration) { parseEpisodeDurationMs(episode.info?.duration) }
+    val progressFraction = remember(progressMs, durationMs) {
+        when {
+            progressMs <= 0L -> 0f
+            durationMs > 0L -> (progressMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+            else -> (progressMs.toFloat() / (45L * 60L * 1000L).toFloat()).coerceIn(0.04f, 0.95f)
+        }
+    }
+    val hasProgress = progressMs > 0L
+    val isCompleted = durationMs > 0L && progressFraction >= 0.98f
+
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -534,6 +644,25 @@ fun EpisodeItem(
                         modifier = Modifier.padding(4.dp)
                     )
                 }
+
+                if (hasProgress) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .background(Color.Black.copy(alpha = 0.55f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(progressFraction)
+                                .background(
+                                    if (isCompleted) Color(0xFF2ECC71) else Color(0xFF00C2FF)
+                                )
+                        )
+                    }
+                }
             }
             
             Spacer(modifier = Modifier.width(MaterialTheme.spacing.medium))
@@ -569,6 +698,32 @@ fun EpisodeItem(
                 modifier = Modifier.size(40.dp)
             )
         }
+    }
+}
+
+private fun parseEpisodeDurationMs(raw: String?): Long {
+    val input = raw?.trim().orEmpty()
+    if (input.isBlank()) return 0L
+
+    val hhMmSs = Regex("""^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$""").matchEntire(input)
+    if (hhMmSs != null) {
+        val a = hhMmSs.groupValues[1].toLongOrNull() ?: return 0L
+        val b = hhMmSs.groupValues[2].toLongOrNull() ?: return 0L
+        val c = hhMmSs.groupValues.getOrNull(3)?.takeIf { it.isNotBlank() }?.toLongOrNull() ?: 0L
+        val totalSeconds = if (hhMmSs.groupValues[3].isNotBlank()) (a * 3600L) + (b * 60L) + c else (a * 60L) + b
+        return totalSeconds * 1000L
+    }
+
+    val numeric = Regex("""(\d+(?:[.,]\d+)?)""").find(input)?.value
+        ?.replace(',', '.')
+        ?.toDoubleOrNull()
+        ?: return 0L
+
+    return when {
+        input.contains("h", ignoreCase = true) -> (numeric * 60.0 * 60.0 * 1000.0).toLong()
+        input.contains("min", ignoreCase = true) || input.contains("m", ignoreCase = true) ->
+            (numeric * 60.0 * 1000.0).toLong()
+        else -> (numeric * 60.0 * 1000.0).toLong()
     }
 }
 

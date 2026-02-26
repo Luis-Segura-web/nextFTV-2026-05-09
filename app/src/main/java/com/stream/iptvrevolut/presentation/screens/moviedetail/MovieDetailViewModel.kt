@@ -60,6 +60,7 @@ class MovieDetailViewModel @Inject constructor(
     var isLoading by mutableStateOf(true)
     var localFilePath by mutableStateOf<String?>(null)
     var lastMoviePositionMs by mutableStateOf(0L)
+    var lastMovieDurationMs by mutableStateOf(0L)
 
     //snapshotFlow asegura que cuando vodStream cambie, se vuelva a calcular el flujo de descarga
     val downloadState: Flow<DownloadEntity?> = combine(
@@ -91,6 +92,7 @@ class MovieDetailViewModel @Inject constructor(
                 val stream = streams.find { it.streamId == streamId } ?: throw Exception("Película no encontrada")
                 vodStream = stream
                 lastMoviePositionMs = readMovieProgress(stream.streamId, profile.id)
+                lastMovieDurationMs = readMovieDuration(stream.streamId, profile.id)
                 
                 val downloads = downloadRepository.getDownloads(profile.id).first()
                 val download = downloads.find { it.streamId == streamId && it.type == "movie" && it.status == "completed" }
@@ -215,12 +217,55 @@ class MovieDetailViewModel @Inject constructor(
         prefs.edit().putLong(movieProgressKey(profileId, streamId), positionMs).apply()
     }
 
+    fun updateMovieDuration(streamId: Int, durationMs: Long) {
+        val profileId = activeProfile?.id ?: return
+        val safeDuration = durationMs.coerceAtLeast(0L)
+        if (safeDuration == 0L) return
+        lastMovieDurationMs = safeDuration
+        prefs.edit().putLong(movieDurationKey(profileId, streamId), safeDuration).apply()
+    }
+
+    fun onPlayerClosed(streamId: Int, positionMs: Long, durationMs: Long) {
+        val profileId = activeProfile?.id ?: return
+        val safePosition = positionMs.coerceAtLeast(0L)
+        val resolvedDuration = durationMs.coerceAtLeast(0L).takeIf { it > 0L }
+            ?: readMovieDuration(streamId, profileId)
+        val isCompleted = resolvedDuration > 0L && safePosition >= resolvedDuration
+
+        if (isCompleted) {
+            clearMovieProgress(streamId, profileId)
+            return
+        }
+
+        lastMoviePositionMs = safePosition
+        if (resolvedDuration > 0L) {
+            lastMovieDurationMs = resolvedDuration
+        }
+        prefs.edit()
+            .putLong(movieProgressKey(profileId, streamId), safePosition)
+            .putLong(movieDurationKey(profileId, streamId), resolvedDuration)
+            .apply()
+    }
+
     private fun movieProgressKey(profileId: Int, streamId: Int): String {
         return "movie_progress_${profileId}_$streamId"
     }
 
+    private fun movieDurationKey(profileId: Int, streamId: Int): String {
+        return "movie_duration_${profileId}_$streamId"
+    }
+
     private fun readMovieProgress(streamId: Int, profileId: Int): Long {
         return prefs.getLong(movieProgressKey(profileId, streamId), 0L)
+    }
+
+    private fun readMovieDuration(streamId: Int, profileId: Int): Long {
+        return prefs.getLong(movieDurationKey(profileId, streamId), 0L)
+    }
+
+    private fun clearMovieProgress(streamId: Int, profileId: Int) {
+        lastMoviePositionMs = 0L
+        prefs.edit().putLong(movieProgressKey(profileId, streamId), 0L).apply()
     }
 
     fun toggleFavorite() {

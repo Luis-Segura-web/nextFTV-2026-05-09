@@ -1,7 +1,7 @@
 package com.stream.iptvrevolut.presentation.screens.moviedetail
 
-import android.app.Activity
 import android.content.pm.ActivityInfo
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -54,6 +54,8 @@ fun MovieDetailScreen(
     val activity = remember { context.findActivity() }
     val isInPipMode = PipModeState.isInPipMode
     var isFullScreen by remember { mutableStateOf(false) }
+    var lastPlayerPositionMs by remember(streamId) { mutableLongStateOf(0L) }
+    var lastPlayerDurationMs by remember(streamId) { mutableLongStateOf(0L) }
 
     LaunchedEffect(streamId) {
         viewModel.loadMovie(streamId, autoPlay)
@@ -95,6 +97,17 @@ fun MovieDetailScreen(
             onDismiss = { viewModel.showVariationSelector = false },
             sourceName = { it.name }
         )
+    }
+
+    BackHandler {
+        if (isFullScreen) {
+            isFullScreen = false
+        } else if (viewModel.isPlayerActive && movie != null) {
+            viewModel.onPlayerClosed(movie.streamId, lastPlayerPositionMs, lastPlayerDurationMs)
+            viewModel.isPlayerActive = false
+        } else {
+            onBack()
+        }
     }
 
     Scaffold(
@@ -158,6 +171,10 @@ fun MovieDetailScreen(
                 ) {
                     if (viewModel.isPlayerActive && profile != null) {
                         val streamUrl = viewModel.localFilePath ?: "${profile.url}movie/${profile.username}/${profile.password}/${movie.streamId}.${movie.containerExtension ?: "mp4"}"
+                        LaunchedEffect(streamUrl, viewModel.lastMoviePositionMs, viewModel.lastMovieDurationMs) {
+                            lastPlayerPositionMs = viewModel.lastMoviePositionMs.coerceAtLeast(0L)
+                            lastPlayerDurationMs = viewModel.lastMovieDurationMs.coerceAtLeast(0L)
+                        }
                         key(streamUrl) {
                             VideoPlayer(
                                 url = streamUrl,
@@ -167,8 +184,14 @@ fun MovieDetailScreen(
                                 resumePositionMs = viewModel.lastMoviePositionMs,
                                 onLoading = { loading -> if (!loading) viewModel.onPlaybackStarted(movie.streamId) },
                                 onProgress = { pos -> viewModel.updateMovieProgress(movie.streamId, pos) },
+                                onProgressSnapshot = { pos, duration ->
+                                    lastPlayerPositionMs = pos
+                                    lastPlayerDurationMs = duration
+                                    viewModel.updateMovieDuration(movie.streamId, duration)
+                                },
                                 onFullScreenClick = { isFullScreen = !isFullScreen },
                                 onClose = { 
+                                    viewModel.onPlayerClosed(movie.streamId, lastPlayerPositionMs, lastPlayerDurationMs)
                                     isFullScreen = false
                                     viewModel.isPlayerActive = false 
                                 },
@@ -255,21 +278,60 @@ fun MovieDetailScreen(
                                 ),
                                 shape = RoundedCornerShape(14.dp)
                             ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    val hasProgress = viewModel.lastMoviePositionMs > 0L
-                                    Text(
-                                        text = if (hasProgress) "CONTINUAR" else "REPRODUCIR",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        letterSpacing = 1.sp
-                                    )
-                                    if (hasProgress) {
-                                        Text(
-                                            text = formatElapsed(viewModel.lastMoviePositionMs),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = Color.White.copy(alpha = 0.9f)
-                                        )
+                                val hasProgress = viewModel.lastMoviePositionMs > 0L
+                                val parsedRuntimeMs = parseMovieRuntimeMs(xtream?.info?.runtime)
+                                val durationForProgress = when {
+                                    viewModel.lastMovieDurationMs > 0L -> viewModel.lastMovieDurationMs
+                                    parsedRuntimeMs > 0L -> parsedRuntimeMs
+                                    else -> 0L
+                                }
+                                val progressFraction = if (hasProgress && durationForProgress > 0L) {
+                                    (viewModel.lastMoviePositionMs.toFloat() / durationForProgress.toFloat()).coerceIn(0f, 1f)
+                                } else {
+                                    0f
+                                }
+
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    Row(
+                                        modifier = Modifier
+                                            .align(Alignment.CenterStart)
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = if (hasProgress) "CONTINUAR" else "REPRODUCIR",
+                                                fontWeight = FontWeight.ExtraBold,
+                                                letterSpacing = 1.sp
+                                            )
+                                            if (hasProgress) {
+                                                Text(
+                                                    text = formatElapsed(viewModel.lastMoviePositionMs),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = Color.White.copy(alpha = 0.9f)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (hasProgress && progressFraction > 0f) {
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomCenter)
+                                                .fillMaxWidth()
+                                                .height(3.dp)
+                                                .background(Color.Black.copy(alpha = 0.28f))
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxHeight()
+                                                    .fillMaxWidth(progressFraction)
+                                                    .background(Color.White.copy(alpha = 0.95f))
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -520,5 +582,31 @@ private fun formatElapsed(ms: Long): String {
         "%d:%02d:%02d".format(h, m, s)
     } else {
         "%02d:%02d".format(m, s)
+    }
+}
+
+private fun parseMovieRuntimeMs(raw: String?): Long {
+    val input = raw?.trim().orEmpty()
+    if (input.isBlank()) return 0L
+
+    val hhMmSs = Regex("""^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$""").matchEntire(input)
+    if (hhMmSs != null) {
+        val a = hhMmSs.groupValues[1].toLongOrNull() ?: return 0L
+        val b = hhMmSs.groupValues[2].toLongOrNull() ?: return 0L
+        val c = hhMmSs.groupValues.getOrNull(3)?.takeIf { it.isNotBlank() }?.toLongOrNull() ?: 0L
+        val totalSeconds = if (hhMmSs.groupValues[3].isNotBlank()) (a * 3600L) + (b * 60L) + c else (a * 60L) + b
+        return totalSeconds * 1000L
+    }
+
+    val numeric = Regex("""(\d+(?:[.,]\d+)?)""").find(input)?.value
+        ?.replace(',', '.')
+        ?.toDoubleOrNull()
+        ?: return 0L
+
+    return when {
+        input.contains("h", ignoreCase = true) -> (numeric * 60.0 * 60.0 * 1000.0).toLong()
+        input.contains("min", ignoreCase = true) || input.contains("m", ignoreCase = true) ->
+            (numeric * 60.0 * 1000.0).toLong()
+        else -> (numeric * 60.0 * 1000.0).toLong()
     }
 }

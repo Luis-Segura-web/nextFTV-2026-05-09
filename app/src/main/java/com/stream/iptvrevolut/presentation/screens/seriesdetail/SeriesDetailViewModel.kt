@@ -31,6 +31,16 @@ class SeriesDetailViewModel @Inject constructor(
     private val seriesRepository: SeriesRepository,
     private val downloadRepository: DownloadRepository
 ) : ViewModel() {
+    enum class PrimaryActionMode {
+        PLAY,
+        CONTINUE,
+        NEXT
+    }
+
+    companion object {
+        private const val FINISHED_THRESHOLD = 0.98f
+    }
+
     private val prefs by lazy { context.getSharedPreferences("playback_resume_prefs", Context.MODE_PRIVATE) }
 
     var seriesDetails by mutableStateOf<TmdbMovieDetailsDto?>(null)
@@ -61,6 +71,7 @@ class SeriesDetailViewModel @Inject constructor(
     var lastEpisodeSeason by mutableStateOf<Int?>(null)
     var lastEpisodeNumber by mutableStateOf<Int?>(null)
     var lastEpisodePositionMs by mutableStateOf(0L)
+    var primaryActionMode by mutableStateOf(PrimaryActionMode.PLAY)
 
     val episodeDownloads: Flow<Map<String, DownloadEntity>> = combine(
         profileRepository.getProfiles().map { it.find { p -> p.isActive }?.id },
@@ -192,6 +203,29 @@ class SeriesDetailViewModel @Inject constructor(
         isPlayerActive = true 
     }
 
+    fun onEpisodeClickFromStart(episode: SeriesEpisodeDto) {
+        val episodeId = episode.id
+        if (episodeId != null) {
+            val profileId = activeProfile?.id
+            val seriesId = seriesStream?.seriesId
+            episodeProgressById[episodeId] = 0L
+            if (lastEpisodeId == episodeId) {
+                lastEpisodePositionMs = 0L
+                if (primaryActionMode == PrimaryActionMode.CONTINUE) {
+                    primaryActionMode = PrimaryActionMode.PLAY
+                }
+            }
+            if (profileId != null && seriesId != null) {
+                prefs.edit()
+                    .putLong(seriesEpisodeProgressKey(profileId, seriesId, episodeId), 0L)
+                    .putLong(seriesPositionKey(profileId, seriesId), if (lastEpisodeId == episodeId) 0L else lastEpisodePositionMs)
+                    .putString(seriesActionModeKey(profileId, seriesId), primaryActionMode.name)
+                    .apply()
+            }
+        }
+        onEpisodeClick(episode)
+    }
+
     private fun orderedEpisodes(): List<SeriesEpisodeDto> {
         val allEps = episodes ?: return emptyList()
         return allEps
@@ -253,8 +287,8 @@ class SeriesDetailViewModel @Inject constructor(
         if (positionMs < 0L) return
 
         val episodeId = episode.id ?: return
-        val season = episode.season ?: return
-        val number = episode.episodeNum ?: return
+        val season = episode.season
+        val number = episode.episodeNum
 
         lastEpisodeId = episodeId
         lastEpisodeSeason = season
@@ -262,13 +296,60 @@ class SeriesDetailViewModel @Inject constructor(
         lastEpisodePositionMs = positionMs
         episodeProgressById[episodeId] = positionMs
 
-        prefs.edit()
-            .putString(seriesEpisodeIdKey(profileId, seriesId), episodeId)
-            .putInt(seriesSeasonKey(profileId, seriesId), season)
-            .putInt(seriesEpisodeNumberKey(profileId, seriesId), number)
-            .putLong(seriesPositionKey(profileId, seriesId), positionMs)
-            .putLong(seriesEpisodeProgressKey(profileId, seriesId, episodeId), positionMs)
-            .apply()
+        prefs.edit().apply {
+            putString(seriesEpisodeIdKey(profileId, seriesId), episodeId)
+            if (season != null) putInt(seriesSeasonKey(profileId, seriesId), season) else remove(seriesSeasonKey(profileId, seriesId))
+            if (number != null) putInt(seriesEpisodeNumberKey(profileId, seriesId), number) else remove(seriesEpisodeNumberKey(profileId, seriesId))
+            putLong(seriesPositionKey(profileId, seriesId), positionMs)
+            putLong(seriesEpisodeProgressKey(profileId, seriesId, episodeId), positionMs)
+            apply()
+        }
+    }
+
+    fun onPlayerClosed(episode: SeriesEpisodeDto, positionMs: Long, durationMs: Long) {
+        val profileId = activeProfile?.id ?: return
+        val seriesId = seriesStream?.seriesId ?: return
+        val episodeId = episode.id ?: return
+        val clampedPosition = positionMs.coerceAtLeast(0L)
+        val clampedDuration = durationMs.coerceAtLeast(0L)
+        val completionThreshold = (clampedDuration * FINISHED_THRESHOLD).toLong()
+        val isCompleted = clampedDuration > 0L && clampedPosition >= completionThreshold
+
+        if (isCompleted) {
+            episodeProgressById[episodeId] = clampedDuration
+            prefs.edit()
+                .putLong(seriesEpisodeProgressKey(profileId, seriesId, episodeId), clampedDuration)
+                .apply()
+
+            val nextEpisode = nextEpisodeFor(episode)
+            if (nextEpisode != null) {
+                persistPrimaryTarget(
+                    profileId = profileId,
+                    seriesId = seriesId,
+                    episode = nextEpisode,
+                    positionMs = 0L,
+                    mode = PrimaryActionMode.NEXT
+                )
+            } else {
+                val firstEpisode = orderedEpisodes().firstOrNull() ?: episode
+                persistPrimaryTarget(
+                    profileId = profileId,
+                    seriesId = seriesId,
+                    episode = firstEpisode,
+                    positionMs = 0L,
+                    mode = PrimaryActionMode.PLAY
+                )
+            }
+            return
+        }
+
+        persistPrimaryTarget(
+            profileId = profileId,
+            seriesId = seriesId,
+            episode = episode,
+            positionMs = clampedPosition,
+            mode = if (clampedPosition > 0L) PrimaryActionMode.CONTINUE else PrimaryActionMode.PLAY
+        )
     }
 
     fun playLastSeenEpisodeOrFallback() {
@@ -286,6 +367,9 @@ class SeriesDetailViewModel @Inject constructor(
         lastEpisodeSeason = prefs.getInt(seriesSeasonKey(profileId, seriesId), -1).takeIf { it >= 0 }
         lastEpisodeNumber = prefs.getInt(seriesEpisodeNumberKey(profileId, seriesId), -1).takeIf { it >= 0 }
         lastEpisodePositionMs = prefs.getLong(seriesPositionKey(profileId, seriesId), 0L)
+        primaryActionMode = prefs.getString(seriesActionModeKey(profileId, seriesId), null)
+            ?.let { raw -> runCatching { PrimaryActionMode.valueOf(raw) }.getOrNull() }
+            ?: if (lastEpisodePositionMs > 0L) PrimaryActionMode.CONTINUE else PrimaryActionMode.PLAY
         lastEpisodeSeason?.let { selectedSeason = it }
     }
 
@@ -322,6 +406,48 @@ class SeriesDetailViewModel @Inject constructor(
 
     private fun seriesEpisodeProgressKey(profileId: Int, seriesId: Int, episodeId: String): String {
         return "series_episode_progress_${profileId}_${seriesId}_$episodeId"
+    }
+
+    private fun seriesActionModeKey(profileId: Int, seriesId: Int): String {
+        return "series_action_mode_${profileId}_$seriesId"
+    }
+
+    private fun persistPrimaryTarget(
+        profileId: Int,
+        seriesId: Int,
+        episode: SeriesEpisodeDto,
+        positionMs: Long,
+        mode: PrimaryActionMode
+    ) {
+        val targetEpisodeId = episode.id ?: return
+        val targetSeason = episode.season
+        val targetNumber = episode.episodeNum
+        val safePosition = positionMs.coerceAtLeast(0L)
+
+        lastEpisodeId = targetEpisodeId
+        lastEpisodeSeason = targetSeason
+        lastEpisodeNumber = targetNumber
+        lastEpisodePositionMs = safePosition
+        primaryActionMode = mode
+        episodeProgressById[targetEpisodeId] = safePosition
+
+        prefs.edit().apply {
+            putString(seriesEpisodeIdKey(profileId, seriesId), targetEpisodeId)
+            if (targetSeason != null) putInt(seriesSeasonKey(profileId, seriesId), targetSeason) else remove(seriesSeasonKey(profileId, seriesId))
+            if (targetNumber != null) putInt(seriesEpisodeNumberKey(profileId, seriesId), targetNumber) else remove(seriesEpisodeNumberKey(profileId, seriesId))
+            putLong(seriesPositionKey(profileId, seriesId), safePosition)
+            putLong(seriesEpisodeProgressKey(profileId, seriesId, targetEpisodeId), safePosition)
+            putString(seriesActionModeKey(profileId, seriesId), mode.name)
+            apply()
+        }
+    }
+
+    private fun nextEpisodeFor(episode: SeriesEpisodeDto): SeriesEpisodeDto? {
+        val flattened = orderedEpisodes()
+        if (flattened.isEmpty()) return null
+        val currentIndex = flattened.indexOfFirst { it.id == episode.id }
+        if (currentIndex == -1 || currentIndex >= flattened.lastIndex) return null
+        return flattened[currentIndex + 1]
     }
 
     fun toggleFavorite() {
