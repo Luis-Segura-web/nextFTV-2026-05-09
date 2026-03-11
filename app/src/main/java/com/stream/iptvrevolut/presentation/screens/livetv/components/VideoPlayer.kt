@@ -36,8 +36,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.stream.iptvrevolut.MainActivity
-import com.stream.iptvrevolut.presentation.components.player.PlayerControls
 import com.stream.iptvrevolut.presentation.player.GlobalPlaybackManager
+import com.stream.iptvrevolut.presentation.player.MpvEmbeddedPlayer
+import com.stream.iptvrevolut.presentation.player.PlayerEngine
+import com.stream.iptvrevolut.presentation.player.PlayerEnginePreferences
 import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.player.PipPreferences
 import com.stream.iptvrevolut.utils.findActivity
@@ -53,7 +55,7 @@ fun VideoPlayer(
     url: String,
     title: String = "Reproduciendo...",
     modifier: Modifier = Modifier,
-    useOriginalMedia3Controller: Boolean = false,
+    preferredEngine: PlayerEngine = PlayerEnginePreferences.selectedEngine,
     isFullScreen: Boolean = false,
     resumePositionMs: Long = 0L,
     onLoading: (Boolean) -> Unit = {},
@@ -97,6 +99,32 @@ fun VideoPlayer(
         mutableLongStateOf(resumePositionMs.coerceAtLeast(0L))
     }
     var initialSeekConsumed by remember(url) { mutableStateOf(false) }
+
+    val shouldUseMpv = preferredEngine == PlayerEngine.MPV
+
+    if (shouldUseMpv) {
+        MpvEmbeddedPlayer(
+            url = url,
+            title = title,
+            isLive = isLive,
+            isFullScreen = isFullScreen,
+            resumePositionMs = resumePositionMs,
+            pipEnabled = isPipEnabled,
+            isInSystemPipMode = isInSystemPipMode,
+            onFullScreenClick = onFullScreenClick,
+            onClose = onClose,
+            onPipRequested = onPipRequested ?: { activity?.enterPipMode(); Unit },
+            onError = onError,
+            onLoading = onLoading,
+            onProgress = onProgress,
+            onProgressSnapshot = onProgressSnapshot,
+            onNext = onNext,
+            onPrevious = onPrevious,
+            isSmall = isSmall || !isFullScreen,
+            modifier = modifier.fillMaxSize()
+        )
+        return
+    }
 
     val exoPlayer = remember { GlobalPlaybackManager.getPlayer(context) }
 
@@ -194,7 +222,7 @@ fun VideoPlayer(
         val pv = playerViewRef ?: return@LaunchedEffect
         if (isInSystemPipMode) {
             pv.hideController()
-        } else if (useOriginalMedia3Controller) {
+        } else {
             pv.controllerShowTimeoutMs = 3000
             pv.showController()
         }
@@ -260,28 +288,7 @@ fun VideoPlayer(
         }
     }
 
-    val playerContainerModifier = if (useOriginalMedia3Controller) {
-        modifier.background(Color.Black)
-    } else {
-        modifier
-            .background(Color.Black)
-            .pointerInput(isLocked) {
-                detectTapGestures(onTap = {
-                    if (isLocked) {
-                        showUnlockOverlayTemporarily()
-                    } else {
-                        if (isControlsVisible && !isAnyMenuOpen) isControlsVisible = false
-                        else {
-                            isControlsVisible = true
-                            if (!isAnyMenuOpen && isPlaying) {
-                                timerJob?.cancel()
-                                timerJob = scope.launch { delay(5000); isControlsVisible = false }
-                            }
-                        }
-                    }
-                })
-            }
-    }
+    val playerContainerModifier = modifier.background(Color.Black)
 
     Box(modifier = playerContainerModifier) {
         AndroidView(
@@ -289,8 +296,9 @@ fun VideoPlayer(
                 PlayerView(it).apply {
                     playerViewRef = this
                     player = exoPlayer
-                    useController = useOriginalMedia3Controller && !isInSystemPipMode
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+                    useController = !isInSystemPipMode
+                    // Use only our custom loading indicator to avoid double spinners.
+                    setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
                     setShowNextButton(onNext != null)
                     setShowPreviousButton(onPrevious != null)
                     setShowFastForwardButton(!isLive)
@@ -323,7 +331,7 @@ fun VideoPlayer(
             modifier = Modifier.fillMaxSize(),
             update = { playerView ->
                 playerViewRef = playerView
-                playerView.useController = useOriginalMedia3Controller && !isInSystemPipMode
+                playerView.useController = !isInSystemPipMode
                 playerView.setShowNextButton(onNext != null)
                 playerView.setShowPreviousButton(onPrevious != null)
                 playerView.setShowFastForwardButton(!isLive)
@@ -334,6 +342,13 @@ fun VideoPlayer(
                 playerView.findViewById<android.view.View>(Media3UiR.id.exo_minimal_fullscreen)?.setOnClickListener {
                     onFullScreenClick()
                 }
+                val fullscreenIcon = if (isFullScreen) {
+                    Media3UiR.drawable.exo_styled_controls_fullscreen_exit
+                } else {
+                    Media3UiR.drawable.exo_styled_controls_fullscreen_enter
+                }
+                playerView.findViewById<ImageButton>(Media3UiR.id.exo_fullscreen)?.setImageResource(fullscreenIcon)
+                playerView.findViewById<ImageButton>(Media3UiR.id.exo_minimal_fullscreen)?.setImageResource(fullscreenIcon)
                 configureCustomPrevNextButtons(
                     playerView = playerView,
                     onNext = onNext,
@@ -378,6 +393,8 @@ fun VideoPlayer(
                 playerView.findViewById<View>(Media3UiR.id.exo_repeat_toggle)?.visibility = View.GONE
                 playerView.findViewById<View>(Media3UiR.id.exo_overflow_show)?.visibility = View.GONE
                 playerView.findViewById<View>(Media3UiR.id.exo_overflow_hide)?.visibility = View.GONE
+                playerView.findViewById<View>(Media3UiR.id.exo_controls_background)
+                    ?.setBackgroundColor(android.graphics.Color.parseColor("#66000000"))
                 playerView.findViewById<View>(Media3UiR.id.exo_fullscreen)?.visibility = View.VISIBLE
                 configureTopTitleContent(
                     playerView = playerView,
@@ -411,83 +428,6 @@ fun VideoPlayer(
                 }
             }
         )
-
-        val isSeries = title.contains("S\\d+E\\d+".toRegex())
-        val displayTitle = if (isSeries) title.split(" - ").firstOrNull() ?: title else title
-        val displaySubtitle = if (isSeries) title.split(" - ").getOrNull(1) else null
-
-        if (!isInSystemPipMode && !useOriginalMedia3Controller) {
-            PlayerControls(
-                isVisible = isControlsVisible,
-                isPlaying = isPlaying,
-                isLive = isLive,
-                isSeries = isSeries,
-                isLocked = isLocked,
-                title = displayTitle,
-                subtitle = displaySubtitle,
-                position = position,
-                duration = duration,
-                bufferedPosition = bufferedPosition,
-                isSmall = isSmall || !isFullScreen,
-                availableTracks = availableTracks,
-                currentSpeed = currentSpeed,
-                pipEnabled = isPipEnabled,
-                onPlayPause = { resetControlsTimer(); if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play() },
-                onSeekBack = { resetControlsTimer(); exoPlayer.seekBack() },
-                onSeekForward = { resetControlsTimer(); exoPlayer.seekForward() },
-                onSeek = { resetControlsTimer(); exoPlayer.seekTo(it) },
-                onNext = { resetControlsTimer(); onNext?.invoke() },
-                onPrevious = { resetControlsTimer(); onPrevious?.invoke() },
-                onFullScreen = { resetControlsTimer(); onFullScreenClick() },
-                onClose = {
-                    onProgressSnapshot(
-                        exoPlayer.currentPosition.coerceAtLeast(0L),
-                        exoPlayer.duration.coerceAtLeast(0L)
-                    )
-                    GlobalPlaybackManager.stopAndClear()
-                    onClose()
-                },
-                onReload = { 
-                    resetControlsTimer()
-                    val m = MediaItem.fromUri(url)
-                    exoPlayer.setMediaItem(m)
-                    exoPlayer.prepare()
-                    exoPlayer.play()
-                },
-                onLock = {
-                    isLocked = !isLocked
-                    if (isLocked) onPlayerLocked() else onPlayerUnlocked()
-                },
-                onAspect = {
-                    resetControlsTimer()
-                    resizeMode = when (resizeMode) {
-                        AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_FILL
-                        AspectRatioFrameLayout.RESIZE_MODE_FILL -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                        else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    }
-                },
-                onMenuStateChange = { isOpen -> 
-                    isAnyMenuOpen = isOpen
-                    if (!isOpen) resetControlsTimer()
-                },
-                onTrackSelected = { group, index ->
-                    exoPlayer.trackSelectionParameters = exoPlayer.trackSelectionParameters.buildUpon().setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, index)).build()
-                },
-                onSpeedSelected = { speed ->
-                    currentSpeed = speed
-                    exoPlayer.playbackParameters = PlaybackParameters(speed)
-                },
-                onPip = { 
-                    if (isPipEnabled) {
-                        playerViewRef?.hideController()
-                        (onPipRequested ?: { activity?.enterPipMode() }).invoke()
-                    }
-                },
-                onInteraction = { resetControlsTimer() },
-                onDragging = { isDraggingSeek = it },
-                modifier = Modifier.fillMaxSize()
-            )
-        }
 
         if (isBuffering) {
             val indicatorSize = if (isSmall || !isFullScreen) 56.dp else 82.dp
@@ -607,6 +547,7 @@ private fun applyLockStateToOriginalController(
     )
 
     val controlsVisibility = if (isLocked) View.GONE else controllerVisibility
+    playerView.findViewById<View>(Media3UiR.id.exo_controls_background)?.visibility = controlsVisibility
     playerView.findViewById<View>(Media3UiR.id.exo_center_controls)?.visibility = controlsVisibility
     playerView.findViewById<View>(Media3UiR.id.exo_bottom_bar)?.visibility = controlsVisibility
     playerView.findViewById<View>(Media3UiR.id.exo_progress)?.visibility = controlsVisibility

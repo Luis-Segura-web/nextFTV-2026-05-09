@@ -31,6 +31,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.stream.iptvrevolut.R
 import com.stream.iptvrevolut.data.remote.SeriesEpisodeDto
+import com.stream.iptvrevolut.presentation.player.GlobalPlaybackManager
 import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.screens.livetv.components.VideoPlayer
 import com.stream.iptvrevolut.presentation.screens.moviedetail.CircleActionButton
@@ -91,6 +92,26 @@ fun SeriesDetailScreen(
     var lastPlayerPositionMs by remember(seriesId) { mutableLongStateOf(0L) }
     var lastPlayerDurationMs by remember(seriesId) { mutableLongStateOf(0L) }
     var pendingResumeEpisode by remember(seriesId) { mutableStateOf<SeriesEpisodeDto?>(null) }
+    val currentEpisodeState by rememberUpdatedState(currentEpisode)
+    val playerActiveState by rememberUpdatedState(viewModel.isPlayerActive)
+    val latestPositionState by rememberUpdatedState(lastPlayerPositionMs)
+    val latestDurationState by rememberUpdatedState(lastPlayerDurationMs)
+
+    DisposableEffect(Unit) {
+        onDispose {
+            val episodeOnExit = currentEpisodeState
+            if (playerActiveState && episodeOnExit != null) {
+                val persistedProgress = viewModel.episodeProgressById[episodeOnExit.id] ?: 0L
+                val resolvedPositionMs = maxOf(latestPositionState, persistedProgress)
+                val resolvedDurationMs = latestDurationState
+                    .takeIf { it > 0L }
+                    ?: parseEpisodeDurationMs(episodeOnExit.info?.duration)
+                viewModel.onPlayerClosed(episodeOnExit, resolvedPositionMs, resolvedDurationMs)
+                viewModel.isPlayerActive = false
+            }
+            GlobalPlaybackManager.stopAndClear()
+        }
+    }
 
     if (viewModel.showVariationSelector) {
         SourceSelectionSheet(
@@ -174,9 +195,9 @@ fun SeriesDetailScreen(
                     title = {
                         Text(
                             text = series?.name ?: "",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 3,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     },
@@ -250,7 +271,6 @@ fun SeriesDetailScreen(
                             VideoPlayer(
                                 url = streamUrl,
                                 title = "${series.name} - S${currentEpisode.season?.toString()?.padStart(2, '0')}E${currentEpisode.episodeNum?.toString()?.padStart(2, '0')} - ${currentEpisode.title}",
-                                useOriginalMedia3Controller = true,
                                 isFullScreen = isFullScreen,
                                 resumePositionMs = resumeMs,
                                 onLoading = { loading ->
@@ -332,6 +352,8 @@ fun SeriesDetailScreen(
                             Tab(
                                 selected = selectedDetailTab == index,
                                 onClick = { selectedDetailTab = index },
+                                selectedContentColor = MaterialTheme.colorScheme.primary,
+                                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 text = { 
                                     Text(
                                         text = title,
@@ -425,15 +447,15 @@ fun SeriesDetailScreen(
                                         Surface(
                                             onClick = { viewModel.toggleFavorite() },
                                             modifier = Modifier.size(54.dp),
-                                            color = if (isFavorite) Color.Red.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                            color = if (isFavorite) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                                             shape = RoundedCornerShape(14.dp),
-                                            border = if (isFavorite) BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f)) else null
+                                            border = if (isFavorite) BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.6f)) else null
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
                                                 Icon(
                                                     imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                                     contentDescription = null,
-                                                    tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface
+                                                    tint = if (isFavorite) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
@@ -448,7 +470,7 @@ fun SeriesDetailScreen(
                                         Text(
                                             text = plot,
                                             style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
                                             lineHeight = 20.sp
                                         )
                                     }
@@ -527,6 +549,8 @@ fun SeriesDetailScreen(
                                             Tab(
                                                 selected = selectedSeason.toString() == season,
                                                 onClick = { viewModel.onSeasonSelect(season.toInt()) },
+                                                selectedContentColor = MaterialTheme.colorScheme.primary,
+                                                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 text = { 
                                                     Text(
                                                         text = "Temp. $season",
@@ -599,9 +623,9 @@ fun EpisodeItem(
             .padding(horizontal = 4.dp, vertical = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isPlaying) 
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) 
+                MaterialTheme.colorScheme.primaryContainer
             else 
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = MaterialTheme.shapes.small,
         border = if (isPlaying) 
@@ -680,14 +704,14 @@ fun EpisodeItem(
                     Text(
                         text = "Progreso: ${formatElapsed(progressMs)}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.95f)
                     )
                 }
                 if (!episode.info?.duration.isNullOrBlank()) {
                     Text(
                         text = "${episode.info?.duration} min",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                     )
                 }
             }

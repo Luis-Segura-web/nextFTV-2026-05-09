@@ -1,6 +1,7 @@
 package com.stream.iptvrevolut.domain.repository
 
 import com.stream.iptvrevolut.domain.model.ServerProfile
+import com.stream.iptvrevolut.presentation.player.PlayerEngine
 import kotlinx.coroutines.flow.Flow
 
 interface ProfileRepository {
@@ -16,6 +17,8 @@ interface ProfileRepository {
     suspend fun setPipEnabled(enabled: Boolean)
     suspend fun isBackgroundPlaybackEnabled(): Boolean
     suspend fun setBackgroundPlaybackEnabled(enabled: Boolean)
+    suspend fun getPreferredPlayerEngine(): PlayerEngine
+    suspend fun setPreferredPlayerEngine(engine: PlayerEngine)
     suspend fun getParentalPin(): String?
     suspend fun setParentalPin(pin: String)
     suspend fun clearParentalPin()
@@ -24,4 +27,5 @@ interface ProfileRepository {
     suspend fun clearRecents(profileId: Int)
     suspend fun clearDetailCache()
     suspend fun refreshAccountInfo(profile: ServerProfile): Result<Unit>
+    suspend fun fetchAccountInfo(profile: ServerProfile): Result<ServerProfile>
 }

@@ -44,7 +44,8 @@ fun ProfileSelectorScreen(
                 title = { 
                     Text(
                         text = stringResource(R.string.profiles_title), 
-                        style = MaterialTheme.typography.headlineMedium 
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     ) 
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

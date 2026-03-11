@@ -35,7 +35,6 @@ fun MiniPlayerOverlay(
             VideoPlayer(
                 url = session.url,
                 title = session.title,
-                useOriginalMedia3Controller = true,
                 isFullScreen = false,
                 isLive = session.isLive,
                 isSmall = true,

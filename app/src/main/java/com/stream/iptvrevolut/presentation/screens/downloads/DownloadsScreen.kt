@@ -79,7 +79,7 @@ fun DownloadsScreen(
         containerColor = backgroundColor,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(text = "BIBLIOTECA OFFLINE", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, letterSpacing = 1.sp) },
+                title = { Text(text = "BIBLIOTECA OFFLINE", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, letterSpacing = 0.4.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = textColor)

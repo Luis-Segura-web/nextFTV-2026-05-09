@@ -29,6 +29,7 @@ import com.stream.iptvrevolut.presentation.player.BackgroundPlaybackPreferences
 import com.stream.iptvrevolut.presentation.player.GlobalPlaybackManager
 import com.stream.iptvrevolut.presentation.player.PipActionsController
 import com.stream.iptvrevolut.presentation.player.PipActionReceiver
+import com.stream.iptvrevolut.presentation.player.PlayerEnginePreferences
 import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.player.PipPreferences
 import com.stream.iptvrevolut.presentation.theme.IPTVRevolutTheme
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
         }
         PipPreferences.initialize(this)
         BackgroundPlaybackPreferences.initialize(this)
+        PlayerEnginePreferences.initialize(this)
         BackgroundPlaybackPreferences.onChanged = { enabled ->
             if (!enabled && !isInPictureInPictureMode) {
                 GlobalPlaybackManager.stopAndClear()

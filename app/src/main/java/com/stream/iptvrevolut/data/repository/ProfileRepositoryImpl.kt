@@ -6,11 +6,16 @@ import com.stream.iptvrevolut.data.local.dao.DetailCacheDao
 import com.stream.iptvrevolut.data.local.entity.ProfileEntity
 import com.stream.iptvrevolut.data.local.entity.toDomain
 import com.stream.iptvrevolut.data.remote.XtreamApiService
+import com.stream.iptvrevolut.data.sync.SyncOrchestrator
 import com.stream.iptvrevolut.domain.model.ServerProfile
 import com.stream.iptvrevolut.domain.repository.ProfileRepository
+import com.stream.iptvrevolut.presentation.player.PlayerEngine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,6 +25,7 @@ class ProfileRepositoryImpl @Inject constructor(
     private val profileDao: ProfileDao,
     private val recentDao: RecentDao,
     private val detailCacheDao: DetailCacheDao,
+    private val syncOrchestrator: SyncOrchestrator,
     @ApplicationContext private val context: Context
 ) : ProfileRepository {
 
@@ -56,6 +62,17 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun setBackgroundPlaybackEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("background_playback_enabled", enabled).apply()
+    }
+
+    override suspend fun getPreferredPlayerEngine(): PlayerEngine {
+        val stored = prefs.getString("preferred_player_engine", PlayerEngine.MEDIA3.name)
+        return stored
+            ?.let { value -> PlayerEngine.entries.find { it.name == value } }
+            ?: PlayerEngine.MEDIA3
+    }
+
+    override suspend fun setPreferredPlayerEngine(engine: PlayerEngine) {
+        prefs.edit().putString("preferred_player_engine", engine.name).apply()
     }
 
     override suspend fun getParentalPin(): String? {
@@ -105,18 +122,11 @@ class ProfileRepositoryImpl @Inject constructor(
             )
 
             if (response.userInfo != null) {
-                val expDate = response.userInfo.expDate?.let { timestamp ->
-                    if (timestamp == "null" || timestamp == "0") "Ilimitada"
-                    else {
-                        try {
-                            val date = java.util.Date(timestamp.toLong() * 1000)
-                            val sdf = java.text.SimpleDateFormat("yyyy/MM/dd - HH:mm 'hrs'", java.util.Locale.getDefault())
-                            sdf.format(date)
-                        } catch (e: Exception) {
-                            "Desconocida"
-                        }
-                    }
-                } ?: "Ilimitada"
+                val expDate = formatExpirationDate(response.userInfo.expDate)
+                val normalizedStatus = normalizeAccountStatus(
+                    rawStatus = response.userInfo.status,
+                    rawExpDate = response.userInfo.expDate
+                )
 
                 profileDao.deactivateAllProfiles()
                 val entity = ProfileEntity(
@@ -126,7 +136,7 @@ class ProfileRepositoryImpl @Inject constructor(
                     password = password,
                     isActive = true,
                     expirationDate = expDate,
-                    accountStatus = response.userInfo.status ?: "Unknown"
+                    accountStatus = normalizedStatus
                 )
                 profileDao.insertProfile(entity)
                 Result.success(Unit)
@@ -145,6 +155,8 @@ class ProfileRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteProfile(profile: ServerProfile) {
+        syncOrchestrator.clearStreamingContent(profile.id)
+        recentDao.clearRecents(profile.id)
         val entity = ProfileEntity(
             id = profile.id,
             name = profile.name,
@@ -165,38 +177,74 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun refreshAccountInfo(profile: ServerProfile): Result<Unit> {
         return try {
+            val freshProfile = fetchAccountInfo(profile).getOrThrow()
+            profileDao.updateAccountInfo(profile.id, freshProfile.expirationDate ?: "Ilimitada", freshProfile.accountStatus ?: "Unknown")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun fetchAccountInfo(profile: ServerProfile): Result<ServerProfile> {
+        return try {
             val fullUrl = "${profile.url}player_api.php"
             val response = apiService.loginWithUrl(
-                url = fullUrl, 
-                username = profile.username, 
+                url = fullUrl,
+                username = profile.username,
                 password = profile.password
             )
 
             if (response.userInfo != null) {
-                val expDate = response.userInfo.expDate?.let { timestamp ->
-                    if (timestamp == "null" || timestamp == "0") "Ilimitada"
-                    else {
-                        try {
-                            val date = java.util.Date(timestamp.toLong() * 1000)
-                            val sdf = java.text.SimpleDateFormat("yyyy/MM/dd - HH:mm 'hrs'", java.util.Locale.getDefault())
-                            sdf.format(date)
-                        } catch (e: Exception) {
-                            "Desconocida"
-                        }
-                    }
-                } ?: "Ilimitada"
-
-                profileDao.updateAccountInfo(
-                    profile.id,
-                    expDate,
-                    response.userInfo.status ?: "Unknown"
+                val expDate = formatExpirationDate(response.userInfo.expDate)
+                val normalizedStatus = normalizeAccountStatus(
+                    rawStatus = response.userInfo.status,
+                    rawExpDate = response.userInfo.expDate
                 )
-                Result.success(Unit)
+                Result.success(
+                    profile.copy(
+                        expirationDate = expDate,
+                        accountStatus = normalizedStatus
+                    )
+                )
             } else {
-                Result.failure(Exception("Error al refrescar cuenta"))
+                Result.failure(Exception("Error al consultar estado de cuenta"))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    private fun formatExpirationDate(rawExpDate: String?): String {
+        val expEpochSeconds = parseExpEpochSeconds(rawExpDate) ?: return "Ilimitada"
+        return try {
+            val date = Date(expEpochSeconds * 1000L)
+            val sdf = SimpleDateFormat("yyyy/MM/dd - HH:mm 'hrs'", Locale.getDefault())
+            sdf.format(date)
+        } catch (_: Exception) {
+            "Desconocida"
+        }
+    }
+
+    private fun normalizeAccountStatus(rawStatus: String?, rawExpDate: String?): String {
+        val nowEpochSeconds = System.currentTimeMillis() / 1000L
+        val expEpochSeconds = parseExpEpochSeconds(rawExpDate)
+        val isExpiredByDate = expEpochSeconds != null && expEpochSeconds <= nowEpochSeconds
+        if (isExpiredByDate) return "Expired"
+
+        return when (rawStatus?.trim()?.lowercase(Locale.ROOT)) {
+            "active" -> "Active"
+            "expired" -> "Expired"
+            "disabled" -> "Disabled"
+            "banned" -> "Banned"
+            "trial" -> "Trial"
+            null, "" -> if (expEpochSeconds == null || expEpochSeconds > nowEpochSeconds) "Active" else "Expired"
+            else -> rawStatus.trim()
+        }
+    }
+
+    private fun parseExpEpochSeconds(rawExpDate: String?): Long? {
+        val value = rawExpDate?.trim()
+        if (value.isNullOrEmpty() || value == "null" || value == "0") return null
+        return value.toLongOrNull()?.takeIf { it > 0L }
     }
 }

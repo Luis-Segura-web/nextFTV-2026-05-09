@@ -31,6 +31,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.stream.iptvrevolut.R
 import com.stream.iptvrevolut.data.remote.tmdb.TmdbMovieShortDto
+import com.stream.iptvrevolut.presentation.player.GlobalPlaybackManager
 import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.screens.livetv.components.VideoPlayer
 import com.stream.iptvrevolut.presentation.components.download.CircularDownloadButton
@@ -85,6 +86,25 @@ fun MovieDetailScreen(
     
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val currentMovieState by rememberUpdatedState(movie)
+    val playerActiveState by rememberUpdatedState(viewModel.isPlayerActive)
+    val latestPositionState by rememberUpdatedState(lastPlayerPositionMs)
+    val latestDurationState by rememberUpdatedState(lastPlayerDurationMs)
+
+    DisposableEffect(Unit) {
+        onDispose {
+            val movieOnExit = currentMovieState
+            if (playerActiveState && movieOnExit != null) {
+                viewModel.onPlayerClosed(
+                    movieOnExit.streamId,
+                    latestPositionState,
+                    latestDurationState
+                )
+                viewModel.isPlayerActive = false
+            }
+            GlobalPlaybackManager.stopAndClear()
+        }
+    }
 
     if (viewModel.showVariationSelector) {
         SourceSelectionSheet(
@@ -121,9 +141,9 @@ fun MovieDetailScreen(
                     title = {
                         Text(
                             text = movie?.name ?: "",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 3,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     },
@@ -179,7 +199,6 @@ fun MovieDetailScreen(
                             VideoPlayer(
                                 url = streamUrl,
                                 title = movie.name,
-                                useOriginalMedia3Controller = true,
                                 isFullScreen = isFullScreen,
                                 resumePositionMs = viewModel.lastMoviePositionMs,
                                 onLoading = { loading -> if (!loading) viewModel.onPlaybackStarted(movie.streamId) },
@@ -339,15 +358,15 @@ fun MovieDetailScreen(
                             Surface(
                                 onClick = { viewModel.toggleFavorite() },
                                 modifier = Modifier.size(54.dp),
-                                color = if (isFavorite) Color.Red.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                color = if (isFavorite) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant,
                                 shape = RoundedCornerShape(14.dp),
-                                border = if (isFavorite) BorderStroke(1.dp, Color.Red.copy(alpha = 0.5f)) else null
+                                border = if (isFavorite) BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.6f)) else null
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(
                                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                         contentDescription = null,
-                                        tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface
+                                        tint = if (isFavorite) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -375,7 +394,7 @@ fun MovieDetailScreen(
                             Text(
                                 text = plot,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
                                 lineHeight = 20.sp
                             )
                         }
@@ -439,7 +458,12 @@ fun MovieDetailScreen(
 @Composable
 fun HorizontalListSection(title: String, content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit) {
     Column(modifier = Modifier.padding(top = 24.dp)) {
-        Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
         Spacer(modifier = Modifier.height(12.dp))
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -509,7 +533,7 @@ fun MovieShortItem(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             lineHeight = 14.sp,
-            color = if (isFound) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            color = if (isFound) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
         )
     }
 }
@@ -531,14 +555,15 @@ fun CircleActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, on
 @Composable
 fun InfoChip(text: String) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = MaterialTheme.colorScheme.secondaryContainer,
         shape = RoundedCornerShape(8.dp)
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSecondaryContainer
         )
     }
 }
@@ -546,14 +571,24 @@ fun InfoChip(text: String) {
 @Composable
 fun RatingChip(rating: Double) {
     Surface(
-        color = Color(0xFFFFD700).copy(alpha = 0.2f),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.5f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f))
     ) {
         Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(14.dp))
+            Icon(
+                Icons.Default.Star,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(14.dp)
+            )
             Spacer(modifier = Modifier.width(4.dp))
-            Text(String.format("%.1f", rating), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color(0xFFFFD700))
+            Text(
+                String.format("%.1f", rating),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
         }
     }
 }
@@ -569,7 +604,14 @@ fun ActorItem(name: String, role: String, photoUrl: String?) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(name, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 2)
-        Text(role, style = MaterialTheme.typography.labelSmall, color = Color.Gray, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(
+            role,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

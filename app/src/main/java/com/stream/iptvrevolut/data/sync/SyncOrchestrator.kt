@@ -119,6 +119,29 @@ class SyncOrchestrator @Inject constructor(
         return syncStatusDao.getStatus(profileId, module.key)?.lastSyncTimestamp ?: 0L
     }
 
+    suspend fun clearStreamingContent(profileId: Int) {
+        withContext(Dispatchers.IO) {
+            detailCacheDao.clearVodCache()
+            detailCacheDao.clearSeriesEpisodesCache()
+
+            liveTvDao.deleteCategoriesByProfile(profileId)
+            liveTvDao.deleteStreamsByProfile(profileId)
+            vodDao.deleteCategoriesByProfile(profileId)
+            vodDao.deleteStreamsByProfile(profileId)
+            seriesDao.deleteCategoriesByProfile(profileId)
+            seriesDao.deleteStreamsByProfile(profileId)
+
+            favoriteDao.clearOrphanLiveFavorites(profileId)
+            favoriteDao.clearOrphanVodFavorites(profileId)
+            favoriteDao.clearOrphanSeriesFavorites(profileId)
+            recentDao.clearOrphanLiveRecents(profileId)
+            recentDao.clearOrphanVodRecents(profileId)
+            recentDao.clearOrphanSeriesRecents(profileId)
+
+            syncStatusDao.deleteByProfile(profileId)
+        }
+    }
+
     private suspend fun syncLive(profile: ServerProfile): SyncReport {
         val profileId = profile.id
         liveTvDao.deleteStreamsByProfile(profileId)

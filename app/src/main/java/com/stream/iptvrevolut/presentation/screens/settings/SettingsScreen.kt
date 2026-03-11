@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.stream.iptvrevolut.R
+import com.stream.iptvrevolut.presentation.player.PlayerEngine
 import com.stream.iptvrevolut.presentation.theme.dimens
 import com.stream.iptvrevolut.presentation.theme.spacing
 
@@ -40,8 +41,8 @@ fun SettingsScreen(
                 title = { 
                     Text(
                         text = stringResource(R.string.settings_title), 
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold 
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     ) 
                 },
                 navigationIcon = {
@@ -116,6 +117,10 @@ fun SettingsScreen(
                     icon = Icons.Default.Autorenew,
                     checked = viewModel.autoPlayNext,
                     onCheckedChange = { viewModel.autoPlayNext = it }
+                )
+                SettingsPlayerEngineItem(
+                    currentEngine = viewModel.preferredPlayerEngine,
+                    onEngineChange = { viewModel.onPreferredPlayerEngineChange(it) }
                 )
             }
 
@@ -261,6 +266,64 @@ fun SettingsSyncIntervalItem(
                         }
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsPlayerEngineItem(
+    currentEngine: PlayerEngine,
+    onEngineChange: (PlayerEngine) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val subtitle = when (currentEngine) {
+        PlayerEngine.MEDIA3 -> "Media3 (integrado)"
+        PlayerEngine.MPV -> "MPV (embebido)"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = true }
+            .padding(horizontal = MaterialTheme.spacing.medium, vertical = MaterialTheme.spacing.medium),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.OndemandVideo,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(MaterialTheme.dimens.iconMedium)
+        )
+        Spacer(modifier = Modifier.width(MaterialTheme.spacing.medium))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Reproductor preferido",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Box {
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenuItem(
+                    text = { Text("Media3 (integrado)") },
+                    onClick = {
+                        onEngineChange(PlayerEngine.MEDIA3)
+                        expanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("MPV (embebido)") },
+                    onClick = {
+                        onEngineChange(PlayerEngine.MPV)
+                        expanded = false
+                    }
+                )
             }
         }
     }

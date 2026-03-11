@@ -141,4 +141,16 @@
     <string name="player_exit_fullscreen">Salir de Pantalla Completa</string>
     <string name="player_next_channel">Siguiente Canal</string>
     <string name="player_prev_channel">Canal Anterior</string>
+    <string name="player_tracks_menu_title">Ajustes de pista</string>
+    <string name="player_track_audio">Audio</string>
+    <string name="player_track_subtitles">Subtítulos</string>
+    <string name="player_track_audio_empty">Audio (sin pistas)</string>
+    <string name="player_track_subtitles_empty">Subtítulos (sin pistas)</string>
+    <string name="player_playback_speed">Velocidad</string>
+    <string name="player_playback_speed_value">Velocidad (%1$s)</string>
+    <string name="player_track_no_audio">No hay pistas de audio</string>
+    <string name="player_track_no_subtitles">No hay pistas de subtítulos</string>
+    <string name="player_track_off">Desactivado</string>
+    <string name="player_track_label_fallback">Pista %1$d</string>
+    <string name="common_close">Cerrar</string>
 </resources>

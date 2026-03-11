@@ -37,6 +37,7 @@ import coil3.compose.AsyncImage
 import com.stream.iptvrevolut.R
 import com.stream.iptvrevolut.data.local.entity.live.LiveStreamEntity
 import com.stream.iptvrevolut.domain.model.SortOrder
+import com.stream.iptvrevolut.presentation.player.GlobalPlaybackManager
 import com.stream.iptvrevolut.presentation.player.PipModeState
 import com.stream.iptvrevolut.presentation.screens.livetv.components.VideoPlayer
 import com.stream.iptvrevolut.presentation.theme.dimens
@@ -62,6 +63,16 @@ fun LiveTvScreen(
     var sortMenuExpanded by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
+    val currentStreamState by rememberUpdatedState(currentStream)
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (currentStreamState != null) {
+                viewModel.currentPlayingStream = null
+            }
+            GlobalPlaybackManager.stopAndClear()
+        }
+    }
 
     // Recordar el estado de filtrado
     var lastFilterKey by androidx.compose.runtime.saveable.rememberSaveable { 
@@ -147,8 +158,8 @@ fun LiveTvScreen(
                         } else {
                             Text(
                                 text = stringResource(R.string.live_title), 
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold 
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
                             ) 
                         }
                     },
@@ -242,7 +253,6 @@ fun LiveTvScreen(
                         VideoPlayer(
                             url = streamUrl,
                             title = currentStream.name,
-                            useOriginalMedia3Controller = true,
                             isFullScreen = isFullScreen,
                             onLoading = { loading ->
                                 viewModel.isPlayerLoading = loading

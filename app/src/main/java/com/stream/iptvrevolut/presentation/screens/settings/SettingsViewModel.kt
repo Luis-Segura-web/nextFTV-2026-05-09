@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.stream.iptvrevolut.domain.model.ServerProfile
 import com.stream.iptvrevolut.domain.repository.ProfileRepository
 import com.stream.iptvrevolut.presentation.player.BackgroundPlaybackPreferences
+import com.stream.iptvrevolut.presentation.player.PlayerEngine
+import com.stream.iptvrevolut.presentation.player.PlayerEnginePreferences
 import com.stream.iptvrevolut.presentation.player.PipPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
@@ -27,7 +29,7 @@ class SettingsViewModel @Inject constructor(
     var isPipEnabled by mutableStateOf(true)
     var backgroundPlaybackEnabled by mutableStateOf(true)
     var autoPlayNext by mutableStateOf(true)
-    var useExternalPlayer by mutableStateOf(false)
+    var preferredPlayerEngine by mutableStateOf(PlayerEngine.MEDIA3)
     var syncInterval by mutableIntStateOf(12)
     var isTmdbEnabled by mutableStateOf(true)
 
@@ -43,8 +45,10 @@ class SettingsViewModel @Inject constructor(
             isTmdbEnabled = profileRepository.isTmdbEnabled()
             isPipEnabled = profileRepository.isPipEnabled()
             backgroundPlaybackEnabled = profileRepository.isBackgroundPlaybackEnabled()
+            preferredPlayerEngine = profileRepository.getPreferredPlayerEngine()
             PipPreferences.updateEnabled(isPipEnabled)
             BackgroundPlaybackPreferences.updateEnabled(backgroundPlaybackEnabled)
+            PlayerEnginePreferences.updateSelectedEngine(preferredPlayerEngine)
         }
     }
 
@@ -75,6 +79,14 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             profileRepository.setSyncInterval(hours)
             syncInterval = hours
+        }
+    }
+
+    fun onPreferredPlayerEngineChange(engine: PlayerEngine) {
+        viewModelScope.launch {
+            profileRepository.setPreferredPlayerEngine(engine)
+            preferredPlayerEngine = engine
+            PlayerEnginePreferences.updateSelectedEngine(engine)
         }
     }
 

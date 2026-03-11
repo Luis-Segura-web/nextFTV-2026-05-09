@@ -63,8 +63,8 @@ fun ParentalControlScreen(
                 title = {
                     Text(
                         text = "Control Parental",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
                     )
                 },
                 navigationIcon = {

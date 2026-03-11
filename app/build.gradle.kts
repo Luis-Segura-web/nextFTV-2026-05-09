@@ -16,6 +16,10 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        ndk {
+            // Keep production builds lean: most Android TV/phone devices are ARM.
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -24,6 +28,8 @@ android {
     }
 
     buildTypes {
+        debug {
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(

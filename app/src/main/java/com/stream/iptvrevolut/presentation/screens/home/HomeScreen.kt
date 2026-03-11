@@ -15,6 +15,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.stream.iptvrevolut.R
 import com.stream.iptvrevolut.presentation.screens.home.components.DownloadModuleCard
 import com.stream.iptvrevolut.presentation.screens.home.components.PremiumModuleCard
@@ -30,11 +33,24 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val activeProfile = viewModel.activeProfile
+    val accountStatus = viewModel.liveAccountStatus ?: activeProfile?.accountStatus
+    val expirationDate = viewModel.liveExpirationDate ?: activeProfile?.expirationDate
     val isGlobalSyncing = viewModel.isGlobalSyncing
     val counts = viewModel.counts
 
-    val isAccountActive = activeProfile?.accountStatus?.equals("Active", ignoreCase = true) == true
+    val isAccountActive = accountStatus?.equals("Active", ignoreCase = true) == true
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.validateAccountOnHomeEnter()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
@@ -51,8 +67,8 @@ fun HomeScreen(
                     Column {
                         Text(
                             text = stringResource(R.string.home_app_title),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
                         )
                         activeProfile?.name?.let {
                             Text(
@@ -122,7 +138,7 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = activeProfile?.expirationDate ?: "Ilimitada",
+                            text = expirationDate ?: "Ilimitada",
                             style = MaterialTheme.typography.labelMedium,
                             color = if (isAccountActive) (if (isSystemInDarkTheme()) SuccessGreenLight else SuccessGreen) else Color.Red,
                             fontWeight = FontWeight.ExtraBold
@@ -136,7 +152,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             fontWeight = FontWeight.Bold
                         )
-                        val statusText = activeProfile?.accountStatus ?: "ACTIVO"
+                        val statusText = accountStatus ?: "ACTIVO"
                         Text(
                             text = statusText.uppercase(),
                             style = MaterialTheme.typography.labelMedium,
