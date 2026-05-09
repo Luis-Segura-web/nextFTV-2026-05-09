@@ -1,6 +1,6 @@
 <resources>
-    <string name="app_name">IPTV Revolut</string>
-    <string name="splash_app_title">IPTV REVOLUT</string>
+    <string name="app_name">nextFTV</string>
+    <string name="splash_app_title">nextFTV</string>
 
     <!-- Login Screen -->
     <string name="login_header_title">Añadir Perfil</string>
@@ -25,7 +25,7 @@
     <string name="profiles_delete_confirm">¿Borrar este perfil?</string>
 
     <!-- Home Screen -->
-    <string name="home_app_title">ALPHA26</string>
+    <string name="home_app_title">nextFTV</string>
     <string name="home_sync_all">Sincronizar Todo</string>
     <string name="home_settings">Ajustes</string>
     <string name="home_expiration_label">Expira: %1$s · Estado: ACTIVO</string>
@@ -119,7 +119,7 @@
     <string name="settings_parental">Control Parental</string>
     <string name="settings_parental_subtitle">Bloquear contenido para adultos</string>
     <string name="settings_app_info">Información de la App</string>
-    <string name="settings_app_version">Versión 1.0.0 (Alpha26)</string>
+    <string name="settings_app_version">Versión 1.0.0 (nextFTV)</string>
     <string name="settings_unknown">Desconocido</string>
     <string name="settings_sync_interval">Intervalo de Sincronización</string>
     <string name="settings_sync_interval_subtitle">Vigencia del contenido: %1$d horas</string>
@@ -135,10 +135,22 @@
     <!-- Player Controls -->
     <string name="player_play">Reproducir</string>
     <string name="player_pause">Pausar</string>
-    <string name="player_forward">Adelantar 10 segundos</string>
-    <string name="player_rewind">Retroceder 10 segundos</string>
+    <string name="player_forward">Adelantar 15 segundos</string>
+    <string name="player_rewind">Retroceder 5 segundos</string>
     <string name="player_fullscreen">Pantalla Completa</string>
     <string name="player_exit_fullscreen">Salir de Pantalla Completa</string>
+    <string name="player_orientation_mode">Orientación de fullscreen</string>
+    <string name="player_orientation_mode_portrait">Portrait</string>
+    <string name="player_orientation_mode_landscape">Landscape</string>
+    <string name="player_orientation_mode_auto">Automático</string>
+    <string name="player_screen_adjust">Ajuste de pantalla</string>
+    <string name="player_playback_engine">Motor de reproduccion</string>
+    <string name="player_screen_adjust_title">Ajuste de pantalla</string>
+    <string name="player_screen_adjust_default">Predeterminado</string>
+    <string name="player_screen_adjust_16_9">16:9</string>
+    <string name="player_screen_adjust_4_3">4:3</string>
+    <string name="player_screen_adjust_fill_crop">Rellenar y recortar</string>
+    <string name="player_screen_adjust_stretch">Estirar completo</string>
     <string name="player_next_channel">Siguiente Canal</string>
     <string name="player_prev_channel">Canal Anterior</string>
     <string name="player_tracks_menu_title">Ajustes de pista</string>

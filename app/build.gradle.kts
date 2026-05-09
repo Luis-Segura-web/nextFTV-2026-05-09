@@ -7,18 +7,18 @@ plugins {
 }
 
 android {
-    namespace = "com.stream.iptvrevolut"
+    namespace = "com.stream.nextftv"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.stream.iptvrevolut"
+        applicationId = "com.stream.nextftv"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         ndk {
-            // Keep production builds lean: most Android TV/phone devices are ARM.
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            // Ship GSY native artifacts for all configured ABIs.
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -44,15 +44,6 @@ android {
     }
     buildFeatures {
         compose = true
-    }
-    
-    sourceSets {
-        getByName("main") {
-            kotlin.srcDir("build/generated/ksp/main/kotlin")
-        }
-        getByName("debug") {
-            kotlin.srcDir("build/generated/ksp/debug/kotlin")
-        }
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
@@ -103,10 +94,10 @@ dependencies {
     // Navigation
     implementation(libs.androidx.navigation.compose)
 
-    // Media3 (ExoPlayer)
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.ui)
-    implementation(libs.androidx.media3.session)
+    // GSYVideoPlayer UI/core plus local packaged IJK natives.
+    implementation(libs.gsyvideoplayer.java)
+    implementation(libs.gsyvideoplayer.exo2)
+    implementation(files("libs/gsyVideoPlayer-ex_so-release.aar"))
 
     // Coil
     implementation(libs.coil.compose)

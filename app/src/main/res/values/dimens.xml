@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Dimensiones gestionadas en Kotlin (presentation/theme/Dimensions.kt y Spacing.kt) -->
+    <dimen name="player_bottom_bar_default_height">40dp</dimen>
+    <dimen name="player_bottom_bar_live_height">48dp</dimen>
+    <dimen name="player_bottom_bar_default_horizontal_padding">8dp</dimen>
+    <dimen name="player_bottom_bar_live_horizontal_padding">14dp</dimen>
+    <dimen name="player_title_margin_start_default">4dp</dimen>
+    <dimen name="player_title_margin_start_live">10dp</dimen>
+    <dimen name="player_title_margin_end_default">16dp</dimen>
 </resources>
